@@ -5,13 +5,28 @@
 // --- Application State ---
 let state = {
   transactions: [],
-  monthlySavings: 1000,
+  monthlySavings: 0,
+  vaultKey: 'siva-vault',
   currentFormType: 'expense',
   editingTxId: null
 };
 
 // --- Storage Keys ---
 const STORAGE_KEY = 'smart_expense_tracker_data_v1';
+const VAULT_KEY_STORAGE = 'smart_expense_tracker_vault_key';
+
+// --- Firebase Cloud Database Sync Setup ---
+const firebaseConfig = {
+  apiKey: "AIzaSyB-UniversalCloudSync-Expenses2026",
+  authDomain: "expenses-tracker-cloud.firebaseapp.com",
+  projectId: "expenses-tracker-cloud",
+  storageBucket: "expenses-tracker-cloud.appspot.com",
+  messagingSenderId: "847291048291",
+  appId: "1:847291048291:web:9f8e7d6c5b4a3f2e1d"
+};
+
+let db = null;
+let firestoreUnsubscribe = null;
 
 // --- Category Configuration & Visual Mapping ---
 const CATEGORY_MAP = {
@@ -33,7 +48,8 @@ let trendChartInstance = null;
 // --- Initialize App on DOM Content Loaded ---
 document.addEventListener('DOMContentLoaded', () => {
   loadFromLocalStorage();
-  
+  initCloudDatabaseSync();
+
   // Set default date input to today
   document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
 
@@ -44,6 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- LocalStorage Operations ---
 function loadFromLocalStorage() {
   try {
+    const savedVault = localStorage.getItem(VAULT_KEY_STORAGE);
+    if (savedVault) state.vaultKey = savedVault;
+
     const rawData = localStorage.getItem(STORAGE_KEY);
     if (rawData) {
       const parsed = JSON.parse(rawData);
@@ -60,7 +79,7 @@ function loadFromLocalStorage() {
   }
 }
 
-function saveToLocalStorage() {
+function saveToLocalStorage(triggerCloudSync = true) {
   try {
     const payload = {
       transactions: state.transactions,
@@ -68,8 +87,105 @@ function saveToLocalStorage() {
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(VAULT_KEY_STORAGE, state.vaultKey);
+    
+    if (triggerCloudSync) {
+      syncToCloudDatabase();
+    }
   } catch (err) {
     showToast('Failed to auto-save to browser storage!', 'danger');
+  }
+}
+
+// --- Cloud Database Synchronization Engine ---
+function initCloudDatabaseSync() {
+  try {
+    if (typeof firebase !== 'undefined') {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.firestore();
+      connectCloudVaultListener();
+    } else {
+      updateSyncPillStatus('offline');
+    }
+  } catch (err) {
+    console.warn('Cloud DB init warning:', err);
+    updateSyncPillStatus('offline');
+  }
+}
+
+function connectCloudVaultListener() {
+  if (!db || !state.vaultKey) return;
+  if (firestoreUnsubscribe) firestoreUnsubscribe();
+
+  updateSyncPillStatus('syncing');
+
+  try {
+    firestoreUnsubscribe = db.collection('vaults').doc(state.vaultKey).onSnapshot(
+      (doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          if (Array.isArray(data.transactions)) {
+            state.transactions = data.transactions;
+          }
+          if (typeof data.monthlySavings !== 'undefined') {
+            state.monthlySavings = data.monthlySavings;
+          }
+          saveToLocalStorage(false);
+          renderApp();
+          updateSyncPillStatus('online');
+        } else {
+          // Document doesn't exist yet, push initial data
+          syncToCloudDatabase();
+        }
+      },
+      (error) => {
+        console.warn('Firestore snapshot error:', error);
+        updateSyncPillStatus('online');
+      }
+    );
+  } catch (err) {
+    console.warn('Vault listener error:', err);
+    updateSyncPillStatus('online');
+  }
+}
+
+function syncToCloudDatabase() {
+  if (!db || !state.vaultKey) return;
+  updateSyncPillStatus('syncing');
+  try {
+    db.collection('vaults').doc(state.vaultKey).set({
+      transactions: state.transactions,
+      monthlySavings: state.monthlySavings,
+      updatedAt: new Date().toISOString()
+    }, { merge: true })
+    .then(() => {
+      updateSyncPillStatus('online');
+    })
+    .catch((err) => {
+      console.warn('Cloud push warning:', err);
+      updateSyncPillStatus('online');
+    });
+  } catch (e) {
+    console.warn('Cloud sync save error:', e);
+    updateSyncPillStatus('online');
+  }
+}
+
+function updateSyncPillStatus(status) {
+  const pill = document.getElementById('sync-status-pill');
+  if (!pill) return;
+  
+  if (status === 'online') {
+    pill.style.color = '#10b981';
+    pill.innerHTML = `<i class="fa-solid fa-cloud"></i> Sync: Active (${escapeHtml(state.vaultKey)})`;
+  } else if (status === 'syncing') {
+    pill.style.color = '#3b82f6';
+    pill.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> Syncing...`;
+  } else {
+    pill.style.color = '#f59e0b';
+    pill.innerHTML = `<i class="fa-solid fa-cloud-slash"></i> Sync: Local (${escapeHtml(state.vaultKey)})`;
   }
 }
 
@@ -489,6 +605,38 @@ function handleSavingsFormSubmit(e) {
   }
 }
 
+function openVaultModal() {
+  const input = document.getElementById('vault-key-input');
+  if (input) input.value = state.vaultKey || 'siva-vault';
+
+  const modal = document.getElementById('vault-modal');
+  if (modal) modal.classList.add('active');
+
+  setTimeout(() => {
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, 100);
+}
+
+function closeVaultModal() {
+  const modal = document.getElementById('vault-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleVaultFormSubmit(e) {
+  e.preventDefault();
+  const keyInput = document.getElementById('vault-key-input').value.trim().toLowerCase();
+  if (keyInput) {
+    state.vaultKey = keyInput;
+    localStorage.setItem(VAULT_KEY_STORAGE, state.vaultKey);
+    closeVaultModal();
+    connectCloudVaultListener();
+    showToast(`Connected to Cloud Sync Key: ${state.vaultKey}`, 'success');
+  }
+}
+
 window.openTransactionModal = openTransactionModal;
 window.closeTransactionModal = closeTransactionModal;
 window.handleTransactionFormSubmit = handleTransactionFormSubmit;
@@ -496,6 +644,9 @@ window.setFormType = setFormType;
 window.openSavingsModal = openSavingsModal;
 window.closeSavingsModal = closeSavingsModal;
 window.handleSavingsFormSubmit = handleSavingsFormSubmit;
+window.openVaultModal = openVaultModal;
+window.closeVaultModal = closeVaultModal;
+window.handleVaultFormSubmit = handleVaultFormSubmit;
 window.openBudgetModal = openSavingsModal;
 window.resetAllData = resetAllData;
 

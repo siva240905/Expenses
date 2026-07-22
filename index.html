@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase SDK CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <!-- Application Styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -23,7 +26,7 @@
         </div>
         <div class="brand-text">
           <h1>Expense Tracker</h1>
-          <p>Personal Finance & Local Data Saver</p>
+          <p>Personal Finance &nbsp;&bull;&nbsp; <span id="sync-status-pill" onclick="openVaultModal()" style="cursor: pointer; color: #10b981;" title="Click to view or change Cloud Sync Key"><i class="fa-solid fa-cloud"></i> Sync: Active</span></p>
         </div>
       </div>
       
@@ -289,6 +292,30 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btn-cancel-savings-modal" onclick="closeSavingsModal()">Cancel</button>
           <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Amount</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Dialog: Cloud Sync Vault Key -->
+  <div id="vault-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-cloud"></i> Cloud Database Sync</h2>
+        <button class="btn-close" onclick="closeVaultModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="vault-form" onsubmit="handleVaultFormSubmit(event)">
+        <div class="form-group">
+          <label for="vault-key-input"><i class="fa-solid fa-key"></i> Personal Sync Key</label>
+          <input type="text" id="vault-key-input" class="form-control" placeholder="e.g. siva-vault" required>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Enter the same Sync Key on any browser or mobile phone to instantly view and sync your data everywhere.
+        </p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeVaultModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-arrows-rotate"></i> Connect & Sync</button>
         </div>
       </form>
     </div>
