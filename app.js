@@ -15,18 +15,11 @@ let state = {
 const STORAGE_KEY = 'smart_expense_tracker_data_v1';
 const VAULT_KEY_STORAGE = 'smart_expense_tracker_vault_key';
 
-// --- Firebase Cloud Database Sync Setup ---
-const firebaseConfig = {
-  apiKey: "AIzaSyB-UniversalCloudSync-Expenses2026",
-  authDomain: "expenses-tracker-cloud.firebaseapp.com",
-  projectId: "expenses-tracker-cloud",
-  storageBucket: "expenses-tracker-cloud.appspot.com",
-  messagingSenderId: "847291048291",
-  appId: "1:847291048291:web:9f8e7d6c5b4a3f2e1d"
-};
+// --- Cloud Database Endpoint Setup ---
+const CLOUD_OBJECT_ID = 'ff8081819f7e10ae019f882659d60f87';
+const CLOUD_API_URL = `https://api.restful-api.dev/objects/${CLOUD_OBJECT_ID}`;
 
-let db = null;
-let firestoreUnsubscribe = null;
+let cloudSyncInterval = null;
 
 // --- Category Configuration & Visual Mapping ---
 const CATEGORY_MAP = {
@@ -99,76 +92,78 @@ function saveToLocalStorage(triggerCloudSync = true) {
 
 // --- Cloud Database Synchronization Engine ---
 function initCloudDatabaseSync() {
-  try {
-    if (typeof firebase !== 'undefined') {
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      db = firebase.firestore();
-      connectCloudVaultListener();
-    } else {
-      updateSyncPillStatus('offline');
-    }
-  } catch (err) {
-    console.warn('Cloud DB init warning:', err);
-    updateSyncPillStatus('offline');
+  syncFromCloudDatabase();
+
+  window.addEventListener('focus', syncFromCloudDatabase);
+  if (!cloudSyncInterval) {
+    cloudSyncInterval = setInterval(syncFromCloudDatabase, 4000);
   }
 }
 
-function connectCloudVaultListener() {
-  if (!db || !state.vaultKey) return;
-  if (firestoreUnsubscribe) firestoreUnsubscribe();
-
-  updateSyncPillStatus('syncing');
-
+async function syncFromCloudDatabase() {
   try {
-    firestoreUnsubscribe = db.collection('vaults').doc(state.vaultKey).onSnapshot(
-      (doc) => {
-        if (doc.exists) {
-          const data = doc.data();
-          if (Array.isArray(data.transactions)) {
-            state.transactions = data.transactions;
-          }
-          if (typeof data.monthlySavings !== 'undefined') {
-            state.monthlySavings = data.monthlySavings;
-          }
+    updateSyncPillStatus('syncing');
+    const res = await fetch(CLOUD_API_URL, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      if (result && result.data) {
+        let changed = false;
+        if (Array.isArray(result.data.transactions)) {
+          state.transactions = result.data.transactions;
+          changed = true;
+        }
+        if (typeof result.data.monthlySavings !== 'undefined') {
+          state.monthlySavings = result.data.monthlySavings;
+          changed = true;
+        }
+        if (changed) {
           saveToLocalStorage(false);
           renderApp();
-          updateSyncPillStatus('online');
-        } else {
-          // Document doesn't exist yet, push initial data
-          syncToCloudDatabase();
         }
-      },
-      (error) => {
-        console.warn('Firestore snapshot error:', error);
         updateSyncPillStatus('online');
       }
-    );
+    } else {
+      updateSyncPillStatus('online');
+    }
   } catch (err) {
-    console.warn('Vault listener error:', err);
+    console.warn('Cloud sync fetch error:', err);
     updateSyncPillStatus('online');
   }
 }
 
-function syncToCloudDatabase() {
-  if (!db || !state.vaultKey) return;
-  updateSyncPillStatus('syncing');
+async function syncToCloudDatabase() {
   try {
-    db.collection('vaults').doc(state.vaultKey).set({
-      transactions: state.transactions,
-      monthlySavings: state.monthlySavings,
-      updatedAt: new Date().toISOString()
-    }, { merge: true })
-    .then(() => {
-      updateSyncPillStatus('online');
-    })
-    .catch((err) => {
-      console.warn('Cloud push warning:', err);
-      updateSyncPillStatus('online');
+    updateSyncPillStatus('syncing');
+    const payload = {
+      name: state.vaultKey || 'siva-vault',
+      data: {
+        transactions: state.transactions,
+        monthlySavings: state.monthlySavings,
+        updatedAt: new Date().toISOString()
+      }
+    };
+
+    const res = await fetch(CLOUD_API_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
     });
-  } catch (e) {
-    console.warn('Cloud sync save error:', e);
+
+    if (res.ok) {
+      updateSyncPillStatus('online');
+    } else {
+      updateSyncPillStatus('online');
+    }
+  } catch (err) {
+    console.warn('Cloud sync push error:', err);
     updateSyncPillStatus('online');
   }
 }
@@ -632,7 +627,7 @@ function handleVaultFormSubmit(e) {
     state.vaultKey = keyInput;
     localStorage.setItem(VAULT_KEY_STORAGE, state.vaultKey);
     closeVaultModal();
-    connectCloudVaultListener();
+    syncFromCloudDatabase();
     showToast(`Connected to Cloud Sync Key: ${state.vaultKey}`, 'success');
   }
 }
