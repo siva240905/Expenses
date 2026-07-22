@@ -458,6 +458,8 @@ function safeAddListener(id, event, handler) {
   if (el) el.addEventListener(event, handler);
 }
 
+let isSubmittingTx = false;
+
 function initEventListeners() {
   safeAddListener('btn-add-transaction', 'click', () => openTransactionModal());
   safeAddListener('btn-close-modal', 'click', closeTransactionModal);
@@ -465,9 +467,6 @@ function initEventListeners() {
 
   safeAddListener('btn-close-savings-modal', 'click', closeSavingsModal);
   safeAddListener('btn-cancel-savings-modal', 'click', closeSavingsModal);
-
-  safeAddListener('transaction-form', 'submit', handleTransactionFormSubmit);
-  safeAddListener('savings-form', 'submit', handleSavingsFormSubmit);
 
   safeAddListener('search-input', 'input', renderTransactionsTable);
   safeAddListener('filter-type', 'change', renderTransactionsTable);
@@ -480,6 +479,7 @@ function initEventListeners() {
 
 // --- Modal Handlers ---
 function openTransactionModal(txId = null) {
+  isSubmittingTx = false;
   const modal = document.getElementById('transaction-modal');
   const title = document.getElementById('modal-title');
   const form = document.getElementById('transaction-form');
@@ -512,6 +512,7 @@ function openTransactionModal(txId = null) {
 function closeTransactionModal() {
   document.getElementById('transaction-modal').classList.remove('active');
   state.editingTxId = null;
+  isSubmittingTx = false;
 }
 
 function openSavingsModal() {
@@ -553,7 +554,9 @@ function setFormType(type) {
 
 // --- Transaction Form Actions ---
 function handleTransactionFormSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
+  if (isSubmittingTx) return;
+  isSubmittingTx = true;
 
   const id = document.getElementById('tx-id').value || `tx-${Date.now()}`;
   const amount = parseFloat(document.getElementById('tx-amount').value);
@@ -565,6 +568,7 @@ function handleTransactionFormSubmit(e) {
 
   if (isNaN(amount) || amount <= 0) {
     showToast('Please enter a valid positive amount!', 'danger');
+    isSubmittingTx = false;
     return;
   }
 
