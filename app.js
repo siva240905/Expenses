@@ -48,15 +48,15 @@ function loadFromLocalStorage() {
     if (rawData) {
       const parsed = JSON.parse(rawData);
       state.transactions = parsed.transactions || [];
-      state.monthlySavings = typeof parsed.monthlySavings !== 'undefined' 
-        ? parsed.monthlySavings 
-        : (typeof parsed.initialSavings !== 'undefined' ? parsed.initialSavings : 1000);
+      state.monthlySavings = typeof parsed.monthlySavings !== 'undefined' ? parsed.monthlySavings : 0;
     } else {
-      seedDemoData(false);
+      state.transactions = [];
+      state.monthlySavings = 0;
     }
   } catch (err) {
     console.error('Failed to parse LocalStorage data:', err);
     state.transactions = [];
+    state.monthlySavings = 0;
   }
 }
 
@@ -588,9 +588,9 @@ function handleImportJSON(e) {
 }
 
 function resetAllData() {
-  if (confirm('WARNING: Are you sure you want to delete all saved transactions and reset local data?')) {
+  if (confirm('Are you sure you want to delete all saved transactions and reset data?')) {
     state.transactions = [];
-    state.monthlyBudget = 2500;
+    state.monthlySavings = 0;
     saveToLocalStorage();
     renderApp();
     showToast('All local expense data cleared.', 'warning');
