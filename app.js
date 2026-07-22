@@ -15,9 +15,8 @@ let state = {
 const STORAGE_KEY = 'smart_expense_tracker_data_v1';
 const VAULT_KEY_STORAGE = 'smart_expense_tracker_vault_key';
 
-// --- Cloud Database Endpoint Setup ---
-const CLOUD_OBJECT_ID = 'ff8081819f7e10ae019f882659d60f87';
-const CLOUD_API_URL = `https://api.restful-api.dev/objects/${CLOUD_OBJECT_ID}`;
+// --- Backend JSON Database Endpoint Setup ---
+const CLOUD_JSON_URL = 'https://jsonblob.com/api/jsonBlob/019f8835-49d0-7fb0-9614-81813862993a';
 
 let cloudSyncInterval = null;
 
@@ -90,20 +89,20 @@ function saveToLocalStorage(triggerCloudSync = true) {
   }
 }
 
-// --- Cloud Database Synchronization Engine ---
+// --- Cloud Backend JSON Synchronization Engine ---
 function initCloudDatabaseSync() {
   syncFromCloudDatabase();
 
   window.addEventListener('focus', syncFromCloudDatabase);
   if (!cloudSyncInterval) {
-    cloudSyncInterval = setInterval(syncFromCloudDatabase, 4000);
+    cloudSyncInterval = setInterval(syncFromCloudDatabase, 3000);
   }
 }
 
 async function syncFromCloudDatabase() {
   try {
     updateSyncPillStatus('syncing');
-    const res = await fetch(CLOUD_API_URL, {
+    const res = await fetch(CLOUD_JSON_URL, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'
@@ -111,15 +110,15 @@ async function syncFromCloudDatabase() {
     });
 
     if (res.ok) {
-      const result = await res.json();
-      if (result && result.data) {
+      const data = await res.json();
+      if (data) {
         let changed = false;
-        if (Array.isArray(result.data.transactions)) {
-          state.transactions = result.data.transactions;
+        if (Array.isArray(data.transactions)) {
+          state.transactions = data.transactions;
           changed = true;
         }
-        if (typeof result.data.monthlySavings !== 'undefined') {
-          state.monthlySavings = result.data.monthlySavings;
+        if (typeof data.monthlySavings !== 'undefined') {
+          state.monthlySavings = data.monthlySavings;
           changed = true;
         }
         if (changed) {
@@ -132,7 +131,7 @@ async function syncFromCloudDatabase() {
       updateSyncPillStatus('online');
     }
   } catch (err) {
-    console.warn('Cloud sync fetch error:', err);
+    console.warn('Cloud JSON fetch error:', err);
     updateSyncPillStatus('online');
   }
 }
@@ -141,18 +140,16 @@ async function syncToCloudDatabase() {
   try {
     updateSyncPillStatus('syncing');
     const payload = {
-      name: state.vaultKey || 'siva-vault',
-      data: {
-        transactions: state.transactions,
-        monthlySavings: state.monthlySavings,
-        updatedAt: new Date().toISOString()
-      }
+      transactions: state.transactions,
+      monthlySavings: state.monthlySavings,
+      updatedAt: new Date().toISOString()
     };
 
-    const res = await fetch(CLOUD_API_URL, {
+    const res = await fetch(CLOUD_JSON_URL, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify(payload)
     });
@@ -163,7 +160,7 @@ async function syncToCloudDatabase() {
       updateSyncPillStatus('online');
     }
   } catch (err) {
-    console.warn('Cloud sync push error:', err);
+    console.warn('Cloud JSON push error:', err);
     updateSyncPillStatus('online');
   }
 }
