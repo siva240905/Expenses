@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Personal Expense Tracker with Local Storage Saving, Analytics, and Budgeting">
+  <title>Smart Expense Tracker - Personal Finances</title>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Application Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand-area">
+        <div class="brand-icon">
+          <i class="fa-solid fa-wallet"></i>
+        </div>
+        <div class="brand-text">
+          <h1>Expense Tracker</h1>
+          <p>Personal Finance & Local Data Saver</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="btn-add-transaction" class="btn btn-primary" onclick="openTransactionModal()">
+          <i class="fa-solid fa-plus"></i> Add Transaction
+        </button>
+        <button id="btn-reset-data" class="btn btn-outline-danger" onclick="resetAllData()" title="Clear All Saved Data">
+          <i class="fa-solid fa-trash-can"></i> Reset Data
+        </button>
+      </div>
+    </header>
+
+    <!-- Financial Summary Cards -->
+    <section class="metrics-grid">
+      <!-- Total Balance Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <span class="card-title">Net Balance</span>
+          <div class="card-icon balance">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+        </div>
+        <div id="metric-balance" class="card-value">$0.00</div>
+        <div class="card-subtext">
+          <i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Saved locally in browser
+        </div>
+      </div>
+
+      <!-- Monthly Income Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <span class="card-title">Total Income</span>
+          <div class="card-icon income">
+            <i class="fa-solid fa-arrow-trend-up"></i>
+          </div>
+        </div>
+        <div id="metric-income" class="card-value" style="color: var(--success);">$0.00</div>
+        <div class="card-subtext">
+          <span>Incoming cashflow logged</span>
+        </div>
+      </div>
+
+      <!-- Monthly Expense Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <span class="card-title">Total Spent</span>
+          <div class="card-icon expense">
+            <i class="fa-solid fa-arrow-trend-down"></i>
+          </div>
+        </div>
+        <div id="metric-expense" class="card-value" style="color: var(--danger);">$0.00</div>
+        <div class="card-subtext">
+          <span id="metric-count">0 items logged</span>
+        </div>
+      </div>
+
+      <!-- Monthly Savings Card -->
+      <div class="card" onclick="openSavingsModal()" style="cursor: pointer;" title="Click to edit your monthly savings amount">
+        <div class="card-header-flex">
+          <span class="card-title">Monthly Savings</span>
+          <span class="btn btn-secondary btn-sm" style="font-size: 0.7rem; padding: 2px 8px;"><i class="fa-solid fa-pen"></i> Edit</span>
+        </div>
+        <div id="metric-savings" class="card-value" style="color: #10b981;">$0.00</div>
+        <div class="card-subtext" id="savings-subtext-info">
+          Manually set by you
+        </div>
+        <div class="progress-bar-bg">
+          <div id="savings-progress-bar" class="progress-bar-fill" style="width: 100%; background: linear-gradient(to right, #10b981, #06b6d4);"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analytics Charts Section -->
+    <section class="charts-grid">
+      <!-- Category Doughnut Chart -->
+      <div class="card chart-card">
+        <div class="chart-header">
+          <h3>Spending by Category</h3>
+          <span class="card-subtext">Category Distribution</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Monthly Trend Bar Chart -->
+      <div class="card chart-card">
+        <div class="chart-header">
+          <h3>Income vs Expenses</h3>
+          <span class="card-subtext">Financial Trends</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transactions List & Filter Section -->
+    <section class="content-section">
+      <div class="controls-bar">
+        <!-- Search Box -->
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="search-input" placeholder="Search transactions by note, category, or payment method...">
+        </div>
+
+        <!-- Filter Selects -->
+        <div class="filter-group">
+          <select id="filter-type" class="form-select">
+            <option value="all">All Types</option>
+            <option value="expense">Expenses Only</option>
+            <option value="income">Income Only</option>
+          </select>
+
+          <select id="filter-category" class="form-select">
+            <option value="all">All Categories</option>
+            <option value="Food">Food & Dining</option>
+            <option value="Transportation">Transportation</option>
+            <option value="Housing">Housing & Utilities</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Health">Health & Fitness</option>
+            <option value="Education">Education</option>
+            <option value="Income">Salary / Income</option>
+            <option value="Other">Other / Misc</option>
+          </select>
+
+          <select id="filter-sort" class="form-select">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="amount-desc">Highest Amount</option>
+            <option value="amount-asc">Lowest Amount</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Transactions Table -->
+      <div class="table-responsive">
+        <table class="transactions-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Description / Notes</th>
+              <th>Method</th>
+              <th style="text-align: right;">Amount</th>
+              <th style="text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="transactions-tbody">
+            <!-- Dynamic items rendered via app.js -->
+          </tbody>
+        </table>
+        
+        <!-- Empty State Message -->
+        <div id="empty-state" class="empty-state" style="display: none;">
+          <div class="empty-state-icon">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <h3>No Transactions Found</h3>
+          <p>Add a new expense/income or load sample data to get started.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal Dialog: Add / Edit Transaction -->
+  <div id="transaction-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Transaction</h2>
+        <button class="btn-close" id="btn-close-modal" onclick="closeTransactionModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <form id="transaction-form" onsubmit="handleTransactionFormSubmit(event)">
+        <input type="hidden" id="tx-id">
+
+        <!-- Type Selector (Expense / Income) -->
+        <div class="form-group">
+          <label>Transaction Type</label>
+          <div class="radio-toggle-group">
+            <div id="type-btn-expense" class="radio-toggle-btn active expense" onclick="setFormType('expense')">
+              <i class="fa-solid fa-circle-minus"></i> Expense
+            </div>
+            <div id="type-btn-income" class="radio-toggle-btn income" onclick="setFormType('income')">
+              <i class="fa-solid fa-circle-plus"></i> Income
+            </div>
+          </div>
+        </div>
+
+        <!-- Amount & Date Fields -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="tx-amount">Amount ($)</label>
+            <input type="number" step="any" min="0.01" id="tx-amount" class="form-control" placeholder="0.00" required>
+          </div>
+
+          <div class="form-group">
+            <label for="tx-date">Date</label>
+            <input type="date" id="tx-date" class="form-control" required>
+          </div>
+        </div>
+
+        <!-- Category & Payment Method -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="tx-category">Category</label>
+            <select id="tx-category" class="form-control" required>
+              <option value="Food">Food & Dining</option>
+              <option value="Transportation">Transportation</option>
+              <option value="Housing">Housing & Utilities</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Health">Health & Fitness</option>
+              <option value="Education">Education</option>
+              <option value="Income">Salary / Income</option>
+              <option value="Other">Other / Misc</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="tx-method">Payment Method</label>
+            <select id="tx-method" class="form-control">
+              <option value="Credit Card">Credit Card</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="Cash">Cash</option>
+              <option value="Bank Transfer">Bank Transfer / UPI</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Note / Description -->
+        <div class="form-group">
+          <label for="tx-note">Note / Description</label>
+          <input type="text" id="tx-note" class="form-control" placeholder="e.g. Grocery shopping at Walmart" required>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-modal" onclick="closeTransactionModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Dialog: Edit Monthly Savings -->
+  <div id="savings-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Set Monthly Savings</h2>
+        <button class="btn-close" id="btn-close-savings-modal" onclick="closeSavingsModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="savings-form" onsubmit="handleSavingsFormSubmit(event)">
+        <div class="form-group">
+          <label for="monthly-savings-input"><i class="fa-solid fa-piggy-bank"></i> Monthly Savings Amount ($)</label>
+          <input type="number" step="any" min="0" id="monthly-savings-input" class="form-control" placeholder="e.g. 1000" required>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          This monthly savings value is edited exclusively by you and will not be altered by income or expense transactions.
+        </p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-savings-modal" onclick="closeSavingsModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Amount</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
