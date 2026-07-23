@@ -16,7 +16,7 @@ const STORAGE_KEY = 'smart_expense_tracker_data_v1';
 const VAULT_KEY_STORAGE = 'smart_expense_tracker_vault_key';
 
 // --- Backend JSON Database Endpoint Setup ---
-const CLOUD_JSON_URL = 'https://jsonblob.com/api/jsonBlob/019f8835-49d0-7fb0-9614-81813862993a';
+const CLOUD_JSON_URL = 'https://jsonblob.com/api/jsonBlob/019f8e01-16fc-7aef-8c30-f483585a389c';
 
 let cloudSyncInterval = null;
 
@@ -95,7 +95,8 @@ function initCloudDatabaseSync() {
 
   window.addEventListener('focus', syncFromCloudDatabase);
   if (!cloudSyncInterval) {
-    cloudSyncInterval = setInterval(syncFromCloudDatabase, 3000);
+    // Poll every 30 seconds instead of 3 seconds to avoid HTTP 429 Rate Limits
+    cloudSyncInterval = setInterval(syncFromCloudDatabase, 30000);
   }
 }
 
@@ -643,6 +644,8 @@ window.handleSavingsFormSubmit = handleSavingsFormSubmit;
 window.openVaultModal = openVaultModal;
 window.closeVaultModal = closeVaultModal;
 window.handleVaultFormSubmit = handleVaultFormSubmit;
+window.syncFromCloudDatabase = syncFromCloudDatabase;
+window.syncToCloudDatabase = syncToCloudDatabase;
 window.openBudgetModal = openSavingsModal;
 window.resetAllData = resetAllData;
 
