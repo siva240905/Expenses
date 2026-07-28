@@ -26,7 +26,7 @@
         </div>
         <div class="brand-text">
           <h1>Expense Tracker</h1>
-          <p>Personal Finance &nbsp;&bull;&nbsp; <span id="sync-status-pill" onclick="openVaultModal()" style="cursor: pointer; color: #10b981;" title="Click to view or change Cloud Sync Key"><i class="fa-solid fa-cloud"></i> Sync: Active</span></p>
+          <p>Personal Finance &nbsp;&bull;&nbsp; <span id="sync-status-pill" onclick="openVaultModal()" style="cursor: pointer; color: #10b981;" title="Click to view or change Backend Database Server URL"><i class="fa-solid fa-server"></i> Sync: Server</span></p>
         </div>
       </div>
       
@@ -300,21 +300,21 @@
     </div>
   </div>
 
-  <!-- Modal Dialog: Cloud Sync Vault Key -->
+  <!-- Modal Dialog: Cloud Sync Server Config -->
   <div id="vault-modal" class="modal-backdrop">
     <div class="modal-box">
       <div class="modal-header">
-        <h2><i class="fa-solid fa-cloud"></i> Cloud Database Sync</h2>
+        <h2><i class="fa-solid fa-server"></i> Backend Server Sync</h2>
         <button class="btn-close" onclick="closeVaultModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="vault-form" onsubmit="handleVaultFormSubmit(event)">
         <div class="form-group">
-          <label for="vault-key-input"><i class="fa-solid fa-key"></i> Personal Sync Key</label>
-          <input type="text" id="vault-key-input" class="form-control" placeholder="e.g. siva-vault" required>
+          <label for="server-url-input"><i class="fa-solid fa-link"></i> Backend Database Server URL</label>
+          <input type="url" id="server-url-input" class="form-control" placeholder="e.g. http://192.168.1.5:3000" required>
         </div>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-          Enter the same Sync Key on any browser or mobile phone to instantly view and sync your data everywhere.
+          Enter your running backend server URL (e.g. http://localhost:3000 for local, or your computer's local network IP like http://192.168.x.x:3000 for mobile access).
         </p>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeVaultModal()">Cancel</button>

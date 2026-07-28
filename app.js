@@ -6,17 +6,14 @@
 let state = {
   transactions: [],
   monthlySavings: 0,
-  vaultKey: 'siva-vault',
+  serverUrl: 'http://localhost:3000',
   currentFormType: 'expense',
   editingTxId: null
 };
 
 // --- Storage Keys ---
 const STORAGE_KEY = 'smart_expense_tracker_data_v1';
-const VAULT_KEY_STORAGE = 'smart_expense_tracker_vault_key';
-
-// --- Backend JSON Database Endpoint Setup ---
-const CLOUD_JSON_URL = 'https://jsonblob.com/api/jsonBlob/019f8e01-16fc-7aef-8c30-f483585a389c';
+const SERVER_URL_STORAGE = 'smart_expense_tracker_server_url';
 
 let cloudSyncInterval = null;
 
@@ -52,8 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- LocalStorage Operations ---
 function loadFromLocalStorage() {
   try {
-    const savedVault = localStorage.getItem(VAULT_KEY_STORAGE);
-    if (savedVault) state.vaultKey = savedVault;
+    const savedServerUrl = localStorage.getItem(SERVER_URL_STORAGE);
+    if (savedServerUrl) state.serverUrl = savedServerUrl;
 
     const rawData = localStorage.getItem(STORAGE_KEY);
     if (rawData) {
@@ -79,7 +76,7 @@ function saveToLocalStorage(triggerCloudSync = true) {
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    localStorage.setItem(VAULT_KEY_STORAGE, state.vaultKey);
+    localStorage.setItem(SERVER_URL_STORAGE, state.serverUrl);
     
     if (triggerCloudSync) {
       syncToCloudDatabase();
@@ -101,9 +98,13 @@ function initCloudDatabaseSync() {
 }
 
 async function syncFromCloudDatabase() {
+  if (!state.serverUrl) {
+    updateSyncPillStatus('offline');
+    return;
+  }
   try {
     updateSyncPillStatus('syncing');
-    const res = await fetch(CLOUD_JSON_URL, {
+    const res = await fetch(`${state.serverUrl}/api/sync`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'
@@ -129,15 +130,19 @@ async function syncFromCloudDatabase() {
         updateSyncPillStatus('online');
       }
     } else {
-      updateSyncPillStatus('online');
+      updateSyncPillStatus('offline');
     }
   } catch (err) {
-    console.warn('Cloud JSON fetch error:', err);
-    updateSyncPillStatus('online');
+    console.warn('Backend sync fetch error:', err);
+    updateSyncPillStatus('offline');
   }
 }
 
 async function syncToCloudDatabase() {
+  if (!state.serverUrl) {
+    updateSyncPillStatus('offline');
+    return;
+  }
   try {
     updateSyncPillStatus('syncing');
     const payload = {
@@ -146,8 +151,8 @@ async function syncToCloudDatabase() {
       updatedAt: new Date().toISOString()
     };
 
-    const res = await fetch(CLOUD_JSON_URL, {
-      method: 'PUT',
+    const res = await fetch(`${state.serverUrl}/api/sync`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -158,11 +163,11 @@ async function syncToCloudDatabase() {
     if (res.ok) {
       updateSyncPillStatus('online');
     } else {
-      updateSyncPillStatus('online');
+      updateSyncPillStatus('offline');
     }
   } catch (err) {
-    console.warn('Cloud JSON push error:', err);
-    updateSyncPillStatus('online');
+    console.warn('Backend sync push error:', err);
+    updateSyncPillStatus('offline');
   }
 }
 
@@ -172,13 +177,13 @@ function updateSyncPillStatus(status) {
   
   if (status === 'online') {
     pill.style.color = '#10b981';
-    pill.innerHTML = `<i class="fa-solid fa-cloud"></i> Sync: Active (${escapeHtml(state.vaultKey)})`;
+    pill.innerHTML = `<i class="fa-solid fa-server"></i> Sync: Active (${escapeHtml(state.serverUrl)})`;
   } else if (status === 'syncing') {
     pill.style.color = '#3b82f6';
     pill.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> Syncing...`;
   } else {
     pill.style.color = '#f59e0b';
-    pill.innerHTML = `<i class="fa-solid fa-cloud-slash"></i> Sync: Local (${escapeHtml(state.vaultKey)})`;
+    pill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Sync: Offline (${escapeHtml(state.serverUrl)})`;
   }
 }
 
@@ -603,8 +608,8 @@ function handleSavingsFormSubmit(e) {
 }
 
 function openVaultModal() {
-  const input = document.getElementById('vault-key-input');
-  if (input) input.value = state.vaultKey || 'siva-vault';
+  const input = document.getElementById('server-url-input');
+  if (input) input.value = state.serverUrl || 'http://localhost:3000';
 
   const modal = document.getElementById('vault-modal');
   if (modal) modal.classList.add('active');
@@ -624,13 +629,18 @@ function closeVaultModal() {
 
 function handleVaultFormSubmit(e) {
   e.preventDefault();
-  const keyInput = document.getElementById('vault-key-input').value.trim().toLowerCase();
-  if (keyInput) {
-    state.vaultKey = keyInput;
-    localStorage.setItem(VAULT_KEY_STORAGE, state.vaultKey);
+  let urlInput = document.getElementById('server-url-input').value.trim();
+  if (urlInput) {
+    if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
+      urlInput = 'http://' + urlInput;
+    }
+    // Remove trailing slash if present
+    urlInput = urlInput.replace(/\/+$/, '');
+    state.serverUrl = urlInput;
+    localStorage.setItem(SERVER_URL_STORAGE, state.serverUrl);
     closeVaultModal();
     syncFromCloudDatabase();
-    showToast(`Connected to Cloud Sync Key: ${state.vaultKey}`, 'success');
+    showToast(`Connected to Backend Server: ${state.serverUrl}`, 'success');
   }
 }
 
