@@ -6,7 +6,7 @@
 let state = {
   transactions: [],
   monthlySavings: 0,
-  gistId: '',
+  gistId: '4e9d3322f1da9f4a2ed6d79374937944',
   gistToken: '',
   isAdminLoggedIn: false,
   adminPin: '1234',
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadFromLocalStorage() {
   try {
     const savedGistId = localStorage.getItem(GIST_ID_STORAGE);
-    if (savedGistId) state.gistId = savedGistId;
+    state.gistId = savedGistId || '4e9d3322f1da9f4a2ed6d79374937944';
 
     const savedGistToken = localStorage.getItem(GIST_TOKEN_STORAGE);
     if (savedGistToken) state.gistToken = savedGistToken;
@@ -636,7 +636,7 @@ function openVaultModal() {
   const gistIdInput = document.getElementById('gist-id-input');
   const gistTokenInput = document.getElementById('gist-token-input');
 
-  if (gistIdInput) gistIdInput.value = state.gistId || '';
+  if (gistIdInput) gistIdInput.value = state.gistId || '4e9d3322f1da9f4a2ed6d79374937944';
   if (gistTokenInput) gistTokenInput.value = state.gistToken || '';
 
   const modal = document.getElementById('vault-modal');
