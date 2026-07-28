@@ -6,7 +6,8 @@
 let state = {
   transactions: [],
   monthlySavings: 0,
-  serverUrl: 'http://localhost:3000',
+  gistId: '',
+  gistToken: '',
   isAdminLoggedIn: false,
   adminPin: '1234',
   currentFormType: 'expense',
@@ -15,7 +16,8 @@ let state = {
 
 // --- Storage Keys ---
 const STORAGE_KEY = 'smart_expense_tracker_data_v1';
-const SERVER_URL_STORAGE = 'smart_expense_tracker_server_url';
+const GIST_ID_STORAGE = 'smart_expense_tracker_gist_id';
+const GIST_TOKEN_STORAGE = 'smart_expense_tracker_gist_token';
 const ADMIN_SESSION_STORAGE = 'smart_expense_tracker_admin_session';
 
 let cloudSyncInterval = null;
@@ -53,8 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- LocalStorage Operations ---
 function loadFromLocalStorage() {
   try {
-    const savedServerUrl = localStorage.getItem(SERVER_URL_STORAGE);
-    if (savedServerUrl) state.serverUrl = savedServerUrl;
+    const savedGistId = localStorage.getItem(GIST_ID_STORAGE);
+    if (savedGistId) state.gistId = savedGistId;
+
+    const savedGistToken = localStorage.getItem(GIST_TOKEN_STORAGE);
+    if (savedGistToken) state.gistToken = savedGistToken;
 
     const savedAdminSession = sessionStorage.getItem(ADMIN_SESSION_STORAGE);
     if (savedAdminSession === 'true') state.isAdminLoggedIn = true;
@@ -83,9 +88,10 @@ function saveToLocalStorage(triggerCloudSync = true) {
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    localStorage.setItem(SERVER_URL_STORAGE, state.serverUrl);
+    if (state.gistId) localStorage.setItem(GIST_ID_STORAGE, state.gistId);
+    if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
     
-    if (triggerCloudSync) {
+    if (triggerCloudSync && state.gistId && state.gistToken) {
       syncToCloudDatabase();
     }
   } catch (err) {
@@ -93,41 +99,47 @@ function saveToLocalStorage(triggerCloudSync = true) {
   }
 }
 
-// --- Cloud Backend JSON Synchronization Engine ---
+// --- GitHub Gist Database Synchronization Engine ---
 function initCloudDatabaseSync() {
   syncFromCloudDatabase();
 
   window.addEventListener('focus', syncFromCloudDatabase);
   if (!cloudSyncInterval) {
-    // Poll every 30 seconds instead of 3 seconds to avoid HTTP 429 Rate Limits
     cloudSyncInterval = setInterval(syncFromCloudDatabase, 30000);
   }
 }
 
 async function syncFromCloudDatabase() {
-  if (!state.serverUrl) {
-    updateSyncPillStatus('offline');
+  if (!state.gistId) {
+    updateSyncPillStatus('unconfigured');
     return;
   }
   try {
     updateSyncPillStatus('syncing');
-    const res = await fetch(`${state.serverUrl}/api/sync`, {
+    const headers = { 'Accept': 'application/vnd.github.v3+json' };
+    if (state.gistToken) {
+      headers['Authorization'] = `token ${state.gistToken}`;
+    }
+
+    const res = await fetch(`https://api.github.com/gists/${state.gistId}`, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
+      headers: headers
     });
 
     if (res.ok) {
-      const data = await res.json();
-      if (data) {
+      const gistData = await res.json();
+      const files = gistData.files;
+      const fileKey = files['expenses.json'] ? 'expenses.json' : Object.keys(files)[0];
+
+      if (fileKey && files[fileKey]) {
+        const content = JSON.parse(files[fileKey].content);
         let changed = false;
-        if (Array.isArray(data.transactions)) {
-          state.transactions = data.transactions;
+        if (Array.isArray(content.transactions)) {
+          state.transactions = content.transactions;
           changed = true;
         }
-        if (typeof data.monthlySavings !== 'undefined') {
-          state.monthlySavings = data.monthlySavings;
+        if (typeof content.monthlySavings !== 'undefined') {
+          state.monthlySavings = content.monthlySavings;
           changed = true;
         }
         if (changed) {
@@ -140,14 +152,14 @@ async function syncFromCloudDatabase() {
       updateSyncPillStatus('offline');
     }
   } catch (err) {
-    console.warn('Backend sync fetch error:', err);
+    console.warn('GitHub Gist fetch error:', err);
     updateSyncPillStatus('offline');
   }
 }
 
 async function syncToCloudDatabase() {
-  if (!state.serverUrl) {
-    updateSyncPillStatus('offline');
+  if (!state.gistId || !state.gistToken) {
+    updateSyncPillStatus('unconfigured');
     return;
   }
   try {
@@ -158,14 +170,20 @@ async function syncToCloudDatabase() {
       updatedAt: new Date().toISOString()
     };
 
-    const res = await fetch(`${state.serverUrl}/api/sync`, {
-      method: 'POST',
+    const res = await fetch(`https://api.github.com/gists/${state.gistId}`, {
+      method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'x-admin-pin': state.adminPin
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `token ${state.gistToken}`,
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        files: {
+          'expenses.json': {
+            content: JSON.stringify(payload, null, 2)
+          }
+        }
+      })
     });
 
     if (res.ok) {
@@ -174,7 +192,7 @@ async function syncToCloudDatabase() {
       updateSyncPillStatus('offline');
     }
   } catch (err) {
-    console.warn('Backend sync push error:', err);
+    console.warn('GitHub Gist push error:', err);
     updateSyncPillStatus('offline');
   }
 }
@@ -185,13 +203,16 @@ function updateSyncPillStatus(status) {
   
   if (status === 'online') {
     pill.style.color = '#10b981';
-    pill.innerHTML = `<i class="fa-solid fa-server"></i> Sync: Active (${escapeHtml(state.serverUrl)})`;
+    pill.innerHTML = `<i class="fa-brands fa-github"></i> Gist: Active`;
   } else if (status === 'syncing') {
     pill.style.color = '#3b82f6';
     pill.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> Syncing...`;
-  } else {
+  } else if (status === 'unconfigured') {
     pill.style.color = '#f59e0b';
-    pill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Sync: Offline (${escapeHtml(state.serverUrl)})`;
+    pill.innerHTML = `<i class="fa-brands fa-github"></i> Sync: Setup Gist`;
+  } else {
+    pill.style.color = '#ef4444';
+    pill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Gist: Offline`;
   }
 }
 
@@ -616,16 +637,19 @@ function handleSavingsFormSubmit(e) {
 }
 
 function openVaultModal() {
-  const input = document.getElementById('server-url-input');
-  if (input) input.value = state.serverUrl || 'http://localhost:3000';
+  const gistIdInput = document.getElementById('gist-id-input');
+  const gistTokenInput = document.getElementById('gist-token-input');
+
+  if (gistIdInput) gistIdInput.value = state.gistId || '';
+  if (gistTokenInput) gistTokenInput.value = state.gistToken || '';
 
   const modal = document.getElementById('vault-modal');
   if (modal) modal.classList.add('active');
 
   setTimeout(() => {
-    if (input) {
-      input.focus();
-      input.select();
+    if (gistIdInput) {
+      gistIdInput.focus();
+      gistIdInput.select();
     }
   }, 100);
 }
@@ -637,18 +661,18 @@ function closeVaultModal() {
 
 function handleVaultFormSubmit(e) {
   e.preventDefault();
-  let urlInput = document.getElementById('server-url-input').value.trim();
-  if (urlInput) {
-    if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
-      urlInput = 'http://' + urlInput;
-    }
-    // Remove trailing slash if present
-    urlInput = urlInput.replace(/\/+$/, '');
-    state.serverUrl = urlInput;
-    localStorage.setItem(SERVER_URL_STORAGE, state.serverUrl);
+  const gistIdVal = document.getElementById('gist-id-input').value.trim();
+  const gistTokenVal = document.getElementById('gist-token-input').value.trim();
+
+  if (gistIdVal) {
+    state.gistId = gistIdVal;
+    state.gistToken = gistTokenVal;
+    localStorage.setItem(GIST_ID_STORAGE, state.gistId);
+    if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
+
     closeVaultModal();
     syncFromCloudDatabase();
-    showToast(`Connected to Backend Server: ${state.serverUrl}`, 'success');
+    showToast('Connected to GitHub Gist Cloud Database!', 'success');
   }
 }
 

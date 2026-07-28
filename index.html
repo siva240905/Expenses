@@ -26,7 +26,7 @@
         </div>
         <div class="brand-text">
           <h1>Expense Tracker</h1>
-          <p>Personal Finance &nbsp;&bull;&nbsp; <span id="sync-status-pill" onclick="openVaultModal()" style="cursor: pointer; color: #10b981;" title="Click to view or change Backend Database Server URL"><i class="fa-solid fa-server"></i> Sync: Server</span></p>
+          <p>Personal Finance &nbsp;&bull;&nbsp; <span id="sync-status-pill" onclick="openVaultModal()" style="cursor: pointer; color: #10b981;" title="Click to configure GitHub Gist Cloud Database"><i class="fa-brands fa-github"></i> Sync: Gist</span></p>
         </div>
       </div>
       
@@ -353,21 +353,25 @@
     </div>
   </div>
 
-  <!-- Modal Dialog: Cloud Sync Server Config -->
+  <!-- Modal Dialog: GitHub Gist Database Config -->
   <div id="vault-modal" class="modal-backdrop">
     <div class="modal-box">
       <div class="modal-header">
-        <h2><i class="fa-solid fa-server"></i> Backend Server Sync</h2>
+        <h2><i class="fa-brands fa-github"></i> GitHub Gist Cloud Database</h2>
         <button class="btn-close" onclick="closeVaultModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="vault-form" onsubmit="handleVaultFormSubmit(event)">
         <div class="form-group">
-          <label for="server-url-input"><i class="fa-solid fa-link"></i> Backend Database Server URL</label>
-          <input type="url" id="server-url-input" class="form-control" placeholder="e.g. http://192.168.1.5:3000" required>
+          <label for="gist-id-input"><i class="fa-solid fa-code-fork"></i> GitHub Gist ID</label>
+          <input type="text" id="gist-id-input" class="form-control" placeholder="e.g. 7f8a9b0c1d2e3f4a5b6c" required>
+        </div>
+        <div class="form-group">
+          <label for="gist-token-input"><i class="fa-solid fa-key"></i> GitHub Access Token (PAT) <span style="font-weight: normal; font-size: 0.75rem; color: var(--text-muted);">(For Admin Save)</span></label>
+          <input type="password" id="gist-token-input" class="form-control" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
         </div>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-          Enter your running backend server URL (e.g. http://localhost:3000 for local, or your computer's local network IP like http://192.168.x.x:3000 for mobile access).
+          Your financial data is stored in a private <code>expenses.json</code> Gist file on GitHub. 100% free 24/7 cloud sync across all mobile devices & laptops without running a server!
         </p>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeVaultModal()">Cancel</button>
