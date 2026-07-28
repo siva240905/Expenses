@@ -7,6 +7,8 @@ let state = {
   transactions: [],
   monthlySavings: 0,
   serverUrl: 'http://localhost:3000',
+  isAdminLoggedIn: false,
+  adminPin: '1234',
   currentFormType: 'expense',
   editingTxId: null
 };
@@ -14,6 +16,7 @@ let state = {
 // --- Storage Keys ---
 const STORAGE_KEY = 'smart_expense_tracker_data_v1';
 const SERVER_URL_STORAGE = 'smart_expense_tracker_server_url';
+const ADMIN_SESSION_STORAGE = 'smart_expense_tracker_admin_session';
 
 let cloudSyncInterval = null;
 
@@ -43,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
 
   initEventListeners();
+  updateAdminUiState();
   renderApp();
 });
 
@@ -51,6 +55,9 @@ function loadFromLocalStorage() {
   try {
     const savedServerUrl = localStorage.getItem(SERVER_URL_STORAGE);
     if (savedServerUrl) state.serverUrl = savedServerUrl;
+
+    const savedAdminSession = sessionStorage.getItem(ADMIN_SESSION_STORAGE);
+    if (savedAdminSession === 'true') state.isAdminLoggedIn = true;
 
     const rawData = localStorage.getItem(STORAGE_KEY);
     if (rawData) {
@@ -155,7 +162,8 @@ async function syncToCloudDatabase() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'x-admin-pin': state.adminPin
       },
       body: JSON.stringify(payload)
     });
@@ -309,7 +317,7 @@ function renderTransactionsTable() {
           ${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}
         </span>
       </td>
-      <td style="text-align: center;">
+      <td class="admin-only" style="text-align: center;">
         <button class="btn btn-secondary btn-icon-only" onclick="editTransaction('${tx.id}')" title="Edit Item">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
@@ -644,6 +652,80 @@ function handleVaultFormSubmit(e) {
   }
 }
 
+// --- Admin Mode Handlers ---
+function toggleAdminMode() {
+  if (state.isAdminLoggedIn) {
+    adminLogout();
+  } else {
+    openAdminModal();
+  }
+}
+
+function openAdminModal() {
+  const input = document.getElementById('admin-pin-input');
+  if (input) input.value = '';
+
+  const modal = document.getElementById('admin-modal');
+  if (modal) modal.classList.add('active');
+
+  setTimeout(() => {
+    if (input) input.focus();
+  }, 100);
+}
+
+function closeAdminModal() {
+  const modal = document.getElementById('admin-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleAdminFormSubmit(e) {
+  e.preventDefault();
+  const inputPin = document.getElementById('admin-pin-input').value.trim();
+  if (inputPin === state.adminPin) {
+    state.isAdminLoggedIn = true;
+    sessionStorage.setItem(ADMIN_SESSION_STORAGE, 'true');
+    closeAdminModal();
+    updateAdminUiState();
+    renderApp();
+    showToast('Admin Mode Unlocked! You can now edit transactions & savings.', 'success');
+  } else {
+    showToast('Invalid Admin PIN! Access denied.', 'danger');
+  }
+}
+
+function adminLogout() {
+  state.isAdminLoggedIn = false;
+  sessionStorage.removeItem(ADMIN_SESSION_STORAGE);
+  updateAdminUiState();
+  renderApp();
+  showToast('Locked back to Public Report Mode.', 'warning');
+}
+
+function updateAdminUiState() {
+  document.body.classList.toggle('admin-mode', state.isAdminLoggedIn);
+  
+  const textEl = document.getElementById('admin-btn-text');
+  const iconEl = document.getElementById('admin-icon');
+
+  if (textEl && iconEl) {
+    if (state.isAdminLoggedIn) {
+      textEl.innerText = 'Lock Admin';
+      iconEl.className = 'fa-solid fa-lock-open';
+    } else {
+      textEl.innerText = 'Admin Login';
+      iconEl.className = 'fa-solid fa-lock';
+    }
+  }
+}
+
+function handleSavingsCardClick() {
+  if (state.isAdminLoggedIn) {
+    openSavingsModal();
+  } else {
+    showToast('Public Report View: Login as Admin to edit Monthly Savings.', 'warning');
+  }
+}
+
 window.openTransactionModal = openTransactionModal;
 window.closeTransactionModal = closeTransactionModal;
 window.handleTransactionFormSubmit = handleTransactionFormSubmit;
@@ -654,6 +736,12 @@ window.handleSavingsFormSubmit = handleSavingsFormSubmit;
 window.openVaultModal = openVaultModal;
 window.closeVaultModal = closeVaultModal;
 window.handleVaultFormSubmit = handleVaultFormSubmit;
+window.toggleAdminMode = toggleAdminMode;
+window.openAdminModal = openAdminModal;
+window.closeAdminModal = closeAdminModal;
+window.handleAdminFormSubmit = handleAdminFormSubmit;
+window.adminLogout = adminLogout;
+window.handleSavingsCardClick = handleSavingsCardClick;
 window.syncFromCloudDatabase = syncFromCloudDatabase;
 window.syncToCloudDatabase = syncToCloudDatabase;
 window.openBudgetModal = openSavingsModal;

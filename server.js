@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
+const ADMIN_PIN = process.env.ADMIN_PIN || '1234';
 const DB_FILE = path.join(__dirname, 'db.json');
 
 // Ensure db.json exists
@@ -14,7 +15,7 @@ const server = http.createServer((req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, x-admin-pin');
 
   // Handle preflight OPTIONS
   if (req.method === 'OPTIONS') {
@@ -23,7 +24,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API Route: GET /api/sync
+  // API Route: GET /api/sync (Public Report View)
   if (req.url === '/api/sync' && req.method === 'GET') {
     fs.readFile(DB_FILE, 'utf8', (err, data) => {
       if (err) {
@@ -37,8 +38,15 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API Route: POST /api/sync
+  // API Route: POST /api/sync (Admin Only Write)
   if (req.url === '/api/sync' && req.method === 'POST') {
+    const clientPin = req.headers['x-admin-pin'];
+    if (clientPin !== ADMIN_PIN) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized: Invalid Admin PIN' }));
+      return;
+    }
+
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();

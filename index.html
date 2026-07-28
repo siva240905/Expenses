@@ -31,13 +31,16 @@
       </div>
       
       <div class="header-actions">
+        <button id="btn-admin-login" class="btn btn-outline-primary" onclick="toggleAdminMode()" title="Toggle Admin Edit Mode">
+          <i class="fa-solid fa-lock" id="admin-icon"></i> <span id="admin-btn-text">Admin Login</span>
+        </button>
         <button id="btn-sync-now" class="btn btn-secondary" onclick="syncFromCloudDatabase()" title="Sync data with cloud database">
           <i class="fa-solid fa-arrows-rotate"></i> Sync
         </button>
-        <button id="btn-add-transaction" class="btn btn-primary" onclick="openTransactionModal()">
+        <button id="btn-add-transaction" class="btn btn-primary admin-only" onclick="openTransactionModal()">
           <i class="fa-solid fa-plus"></i> Add Transaction
         </button>
-        <button id="btn-reset-data" class="btn btn-outline-danger" onclick="resetAllData()" title="Clear All Saved Data">
+        <button id="btn-reset-data" class="btn btn-outline-danger admin-only" onclick="resetAllData()" title="Clear All Saved Data">
           <i class="fa-solid fa-trash-can"></i> Reset Data
         </button>
       </div>
@@ -88,10 +91,10 @@
       </div>
 
       <!-- Monthly Savings Card -->
-      <div class="card" onclick="openSavingsModal()" style="cursor: pointer;" title="Click to edit your monthly savings amount">
+      <div class="card" id="card-monthly-savings" onclick="handleSavingsCardClick()" style="cursor: pointer;" title="Click to view/edit monthly savings amount">
         <div class="card-header-flex">
           <span class="card-title">Monthly Savings</span>
-          <span class="btn btn-secondary btn-sm" style="font-size: 0.7rem; padding: 2px 8px;"><i class="fa-solid fa-pen"></i> Edit</span>
+          <span class="btn btn-secondary btn-sm admin-only" id="btn-edit-savings" style="font-size: 0.7rem; padding: 2px 8px;"><i class="fa-solid fa-pen"></i> Edit</span>
         </div>
         <div id="metric-savings" class="card-value" style="color: #10b981;">$0.00</div>
         <div class="card-subtext" id="savings-subtext-info">
@@ -177,7 +180,7 @@
               <th>Description / Notes</th>
               <th>Method</th>
               <th style="text-align: right;">Amount</th>
-              <th style="text-align: center;">Actions</th>
+              <th class="admin-only" style="text-align: center;">Actions</th>
             </tr>
           </thead>
           <tbody id="transactions-tbody">
@@ -319,6 +322,30 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeVaultModal()">Cancel</button>
           <button type="submit" class="btn btn-primary"><i class="fa-solid fa-arrows-rotate"></i> Connect & Sync</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Dialog: Admin PIN Authentication -->
+  <div id="admin-modal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-user-shield"></i> Admin Access</h2>
+        <button class="btn-close" onclick="closeAdminModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="admin-form" onsubmit="handleAdminFormSubmit(event)">
+        <div class="form-group">
+          <label for="admin-pin-input"><i class="fa-solid fa-key"></i> Enter Admin PIN</label>
+          <input type="password" id="admin-pin-input" class="form-control" placeholder="Default PIN: 1234" required autocomplete="off">
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Public visitors can view reports. Logging in as Admin unlocks adding, editing, and deleting transactions.
+        </p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-unlock"></i> Unlock Admin</button>
         </div>
       </form>
     </div>
