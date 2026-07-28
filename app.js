@@ -216,25 +216,11 @@ function updateSyncPillStatus(status) {
 
 // --- Seed Sample Data ---
 function seedDemoData(notify = true) {
-  state.transactions = [
-    { id: 'tx-1', date: '2026-07-24', category: 'Transportation', note: 'return home', method: 'Bank Transfer', amount: 50, type: 'expense' },
-    { id: 'tx-2', date: '2026-07-23', category: 'Transportation', note: 'Petrol', method: 'Bank Transfer', amount: 200, type: 'expense' },
-    { id: 'tx-3', date: '2026-07-23', category: 'Food', note: 'Snack', method: 'Bank Transfer', amount: 15, type: 'expense' },
-    { id: 'tx-4', date: '2026-07-23', category: 'Food', note: 'Grocery', method: 'Bank Transfer', amount: 68, type: 'expense' },
-    { id: 'tx-5', date: '2026-07-23', category: 'Food', note: 'Breakfast', method: 'Bank Transfer', amount: 18, type: 'expense' },
-    { id: 'tx-6', date: '2026-07-23', category: 'Food', note: 'Dinner', method: 'Bank Transfer', amount: 55, type: 'expense' },
-    { id: 'tx-7', date: '2026-07-22', category: 'Housing', note: 'rice and oil', method: 'Bank Transfer', amount: 352, type: 'expense' },
-    { id: 'tx-8', date: '2026-07-22', category: 'Food', note: 'Breakfast', method: 'Bank Transfer', amount: 65, type: 'expense' },
-    { id: 'tx-9', date: '2026-07-21', category: 'Food', note: 'dinner', method: 'Bank Transfer', amount: 97, type: 'expense' },
-    { id: 'tx-10', date: '2026-07-21', category: 'Shopping', note: 'Brush', method: 'Bank Transfer', amount: 75, type: 'expense' },
-    { id: 'tx-11', date: '2026-07-20', category: 'Food', note: 'Dinner', method: 'Bank Transfer', amount: 35, type: 'expense' },
-    { id: 'tx-12', date: '2026-07-20', category: 'Housing', note: 'RENT', method: 'Bank Transfer', amount: 5000, type: 'expense' },
-    { id: 'tx-13', date: '2026-07-19', category: 'Income', note: 'house', method: 'Bank Transfer', amount: 9000, type: 'income' }
-  ];
+  state.transactions = [];
   state.monthlySavings = 0;
   saveToLocalStorage();
   renderApp();
-  if (notify) showToast('Loaded your 13 saved transaction records!', 'success');
+  if (notify) showToast('Database cleared! All data reset to empty.', 'success');
 }
 
 // --- Render Core App ---
