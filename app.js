@@ -70,13 +70,11 @@ function loadFromLocalStorage() {
       state.transactions = parsed.transactions || [];
       state.monthlySavings = typeof parsed.monthlySavings !== 'undefined' ? parsed.monthlySavings : 0;
     } else {
-      state.transactions = [];
-      state.monthlySavings = 0;
+      seedDemoData(false);
     }
   } catch (err) {
     console.error('Failed to parse LocalStorage data:', err);
-    state.transactions = [];
-    state.monthlySavings = 0;
+    seedDemoData(false);
   }
 }
 
@@ -218,27 +216,25 @@ function updateSyncPillStatus(status) {
 
 // --- Seed Sample Data ---
 function seedDemoData(notify = true) {
-  const today = new Date();
-  const formatDaysAgo = (days) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - days);
-    return d.toISOString().split('T')[0];
-  };
-
   state.transactions = [
-    { id: 'tx-1', type: 'income', amount: 3500.00, date: formatDaysAgo(1), category: 'Income', method: 'Bank Transfer', note: 'Monthly Salary Paycheck' },
-    { id: 'tx-2', type: 'expense', amount: 120.50, date: formatDaysAgo(2), category: 'Food', method: 'Credit Card', note: 'Weekly Grocery Store' },
-    { id: 'tx-3', type: 'expense', amount: 45.00, date: formatDaysAgo(3), category: 'Transportation', method: 'Debit Card', note: 'Gas Station Fuel' },
-    { id: 'tx-4', type: 'expense', amount: 89.99, date: formatDaysAgo(4), category: 'Shopping', method: 'Credit Card', note: 'New Running Shoes' },
-    { id: 'tx-5', type: 'expense', amount: 15.99, date: formatDaysAgo(5), category: 'Entertainment', method: 'Credit Card', note: 'Netflix & Spotify Subscriptions' },
-    { id: 'tx-6', type: 'expense', amount: 210.00, date: formatDaysAgo(7), category: 'Housing', method: 'Bank Transfer', note: 'Electricity & Internet Bill' },
-    { id: 'tx-7', type: 'expense', amount: 65.00, date: formatDaysAgo(8), category: 'Health', method: 'Cash', note: 'Pharmacy & Vitamins' },
-    { id: 'tx-8', type: 'income', amount: 450.00, date: formatDaysAgo(10), category: 'Income', method: 'Bank Transfer', note: 'Freelance Design Gigs' }
+    { id: 'tx-1', date: '2026-07-24', category: 'Transportation', note: 'return home', method: 'Bank Transfer', amount: 50, type: 'expense' },
+    { id: 'tx-2', date: '2026-07-23', category: 'Transportation', note: 'Petrol', method: 'Bank Transfer', amount: 200, type: 'expense' },
+    { id: 'tx-3', date: '2026-07-23', category: 'Food', note: 'Snack', method: 'Bank Transfer', amount: 15, type: 'expense' },
+    { id: 'tx-4', date: '2026-07-23', category: 'Food', note: 'Grocery', method: 'Bank Transfer', amount: 68, type: 'expense' },
+    { id: 'tx-5', date: '2026-07-23', category: 'Food', note: 'Breakfast', method: 'Bank Transfer', amount: 18, type: 'expense' },
+    { id: 'tx-6', date: '2026-07-23', category: 'Food', note: 'Dinner', method: 'Bank Transfer', amount: 55, type: 'expense' },
+    { id: 'tx-7', date: '2026-07-22', category: 'Housing', note: 'rice and oil', method: 'Bank Transfer', amount: 352, type: 'expense' },
+    { id: 'tx-8', date: '2026-07-22', category: 'Food', note: 'Breakfast', method: 'Bank Transfer', amount: 65, type: 'expense' },
+    { id: 'tx-9', date: '2026-07-21', category: 'Food', note: 'dinner', method: 'Bank Transfer', amount: 97, type: 'expense' },
+    { id: 'tx-10', date: '2026-07-21', category: 'Shopping', note: 'Brush', method: 'Bank Transfer', amount: 75, type: 'expense' },
+    { id: 'tx-11', date: '2026-07-20', category: 'Food', note: 'Dinner', method: 'Bank Transfer', amount: 35, type: 'expense' },
+    { id: 'tx-12', date: '2026-07-20', category: 'Housing', note: 'RENT', method: 'Bank Transfer', amount: 5000, type: 'expense' },
+    { id: 'tx-13', date: '2026-07-19', category: 'Income', note: 'house', method: 'Bank Transfer', amount: 9000, type: 'income' }
   ];
-  state.monthlySavings = 1000;
+  state.monthlySavings = 0;
   saveToLocalStorage();
   renderApp();
-  if (notify) showToast('Loaded realistic demo data!', 'success');
+  if (notify) showToast('Loaded your 13 saved transaction records!', 'success');
 }
 
 // --- Render Core App ---
