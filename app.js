@@ -726,6 +726,62 @@ function handleSavingsCardClick() {
   }
 }
 
+// --- Quick Add Bar Actions ---
+function handleQuickAddSubmit(e) {
+  if (e) e.preventDefault();
+  if (!state.isAdminLoggedIn) {
+    showToast('Public Report View: Login as Admin to add transactions.', 'warning');
+    return;
+  }
+
+  const amount = parseFloat(document.getElementById('quick-amount').value);
+  const type = document.getElementById('quick-type').value;
+  const category = document.getElementById('quick-category').value;
+  const note = document.getElementById('quick-note').value;
+  const date = new Date().toISOString().split('T')[0];
+
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Please enter a valid positive amount!', 'danger');
+    return;
+  }
+
+  const newTx = {
+    id: `tx-${Date.now()}`,
+    type: type,
+    amount: amount,
+    date: date,
+    category: category,
+    method: type === 'income' ? 'Bank Transfer' : 'Debit Card',
+    note: note
+  };
+
+  state.transactions.unshift(newTx);
+  document.getElementById('quick-add-form').reset();
+  saveToLocalStorage();
+  renderApp();
+  showToast(`Added ${type === 'income' ? '+' : '-'}${formatCurrency(amount)} (${category})!`, 'success');
+}
+
+function quickAddPreset(category, defaultNote, type) {
+  if (!state.isAdminLoggedIn) {
+    openAdminModal();
+    return;
+  }
+
+  const catSelect = document.getElementById('quick-category');
+  const typeSelect = document.getElementById('quick-type');
+  const noteInput = document.getElementById('quick-note');
+  const amountInput = document.getElementById('quick-amount');
+
+  if (catSelect) catSelect.value = category;
+  if (typeSelect) typeSelect.value = type;
+  if (noteInput) noteInput.value = defaultNote;
+
+  if (amountInput) {
+    amountInput.focus();
+  }
+}
+
 window.openTransactionModal = openTransactionModal;
 window.closeTransactionModal = closeTransactionModal;
 window.handleTransactionFormSubmit = handleTransactionFormSubmit;
@@ -742,6 +798,8 @@ window.closeAdminModal = closeAdminModal;
 window.handleAdminFormSubmit = handleAdminFormSubmit;
 window.adminLogout = adminLogout;
 window.handleSavingsCardClick = handleSavingsCardClick;
+window.handleQuickAddSubmit = handleQuickAddSubmit;
+window.quickAddPreset = quickAddPreset;
 window.syncFromCloudDatabase = syncFromCloudDatabase;
 window.syncToCloudDatabase = syncToCloudDatabase;
 window.openBudgetModal = openSavingsModal;
