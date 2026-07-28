@@ -1,0 +1,12 @@
+{
+  "name": "expenses-backend-server",
+  "version": "1.0.0",
+  "description": "Backend database server for Personal Expense Tracker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["expense-tracker", "backend", "database"],
+  "author": "",
+  "license": "ISC"
+}
