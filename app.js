@@ -9,7 +9,7 @@ let state = {
   gistId: '4e9d3322f1da9f4a2ed6d79374937944',
   gistToken: '',
   isAdminLoggedIn: false,
-  adminPin: '1234',
+  adminPin: '7871',
   currentFormType: 'expense',
   editingTxId: null
 };
