@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_PIN = process.env.ADMIN_PIN || '1234';
+const ADMIN_PIN = process.env.ADMIN_PIN || '7871';
 const DB_FILE = path.join(__dirname, 'db.json');
 
 // Ensure db.json exists
