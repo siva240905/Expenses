@@ -1,0 +1,12 @@
+# Gradle & Android Build Artifacts
+.gradle/
+build/
+app/build/
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+android/local.properties
+*.iml
+.DS_Store
+node_modules/
