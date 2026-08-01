@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- PWA Service Worker Registration ---
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then((reg) => {
       console.log('ExpenseFlow PWA ServiceWorker active:', reg.scope);
@@ -1814,7 +1814,19 @@ function escapeHtml(str) {
 }
 
 function showToast(message, type = 'info') {
+  if (window.AndroidNative) {
+    try {
+      if (typeof window.AndroidNative.showToast === 'function') {
+        window.AndroidNative.showToast(message);
+      }
+      if (typeof window.AndroidNative.vibrate === 'function') {
+        window.AndroidNative.vibrate(35);
+      }
+    } catch (e) {}
+  }
+
   const container = document.getElementById('toast-container');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast`;
 

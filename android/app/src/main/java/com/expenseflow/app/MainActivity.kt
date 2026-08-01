@@ -2,7 +2,9 @@ package com.expenseflow.app
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
@@ -24,9 +26,16 @@ class MainActivity : AppCompatActivity() {
             databaseEnabled = true
             allowFileAccess = true
             allowContentAccess = true
+            @Suppress("DEPRECATION")
+            allowFileAccessFromFileURLs = true
+            @Suppress("DEPRECATION")
+            allowUniversalAccessFromFileURLs = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             useWideViewPort = true
             loadWithOverviewMode = true
         }
+
+        webView.webChromeClient = WebChromeClient()
 
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidNative")
 

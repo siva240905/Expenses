@@ -4,7 +4,8 @@
   "description": "Backend database server for Personal Expense Tracker",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "sync-android": "node -e \"const fs = require('fs'); const path = require('path'); ['index.html', 'app.js', 'styles.css', 'db.json', 'manifest.json', 'sw.js'].forEach(f => fs.copyFileSync(f, path.join('android/app/src/main/assets', f))); console.log('Synced web assets to android app assets directory!');\""
   },
   "keywords": ["expense-tracker", "backend", "database"],
   "author": "",
