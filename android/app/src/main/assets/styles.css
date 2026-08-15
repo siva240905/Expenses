@@ -98,14 +98,14 @@ select option:checked, select option:hover {
   background: rgba(4, 6, 15, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  display: none !important;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: all 0.25s ease;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
 .modal-backdrop.active {

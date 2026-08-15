@@ -1430,7 +1430,6 @@ function openTransactionModal(txId = null) {
   }
 
   if (modal) {
-    modal.style.display = 'flex';
     modal.classList.add('active');
   }
 }
@@ -1438,7 +1437,6 @@ function openTransactionModal(txId = null) {
 function closeTransactionModal() {
   const modal = document.getElementById('transaction-modal');
   if (modal) {
-    modal.style.display = 'none';
     modal.classList.remove('active');
   }
   state.editingTxId = null;
@@ -1451,7 +1449,6 @@ function openSavingsModal() {
 
   const modal = document.getElementById('savings-modal');
   if (modal) {
-    modal.style.display = 'flex';
     modal.classList.add('active');
   }
 
@@ -1466,7 +1463,6 @@ function openSavingsModal() {
 function closeSavingsModal() {
   const modal = document.getElementById('savings-modal');
   if (modal) {
-    modal.style.display = 'none';
     modal.classList.remove('active');
   }
 }
@@ -1546,7 +1542,6 @@ function openVaultModal() {
 
   const modal = document.getElementById('vault-modal');
   if (modal) {
-    modal.style.display = 'flex';
     modal.classList.add('active');
   }
 
@@ -1561,7 +1556,6 @@ function openVaultModal() {
 function closeVaultModal() {
   const modal = document.getElementById('vault-modal');
   if (modal) {
-    modal.style.display = 'none';
     modal.classList.remove('active');
   }
 }
@@ -1598,7 +1592,6 @@ function openAdminModal() {
 
   const modal = document.getElementById('admin-modal');
   if (modal) {
-    modal.style.display = 'flex';
     modal.classList.add('active');
   }
 
@@ -1610,7 +1603,6 @@ function openAdminModal() {
 function closeAdminModal() {
   const modal = document.getElementById('admin-modal');
   if (modal) {
-    modal.style.display = 'none';
     modal.classList.remove('active');
   }
 }
