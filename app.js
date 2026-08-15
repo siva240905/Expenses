@@ -22,17 +22,17 @@ const ADMIN_SESSION_STORAGE = 'smart_expense_tracker_admin_session';
 
 let cloudSyncInterval = null;
 
-// --- Category Configuration & Visual Mapping ---
+// --- Category Configuration & Visual Mapping (Lumina Neon Palette) ---
 const CATEGORY_MAP = {
-  Food: { icon: 'fa-utensils', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
-  Transportation: { icon: 'fa-car', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
-  Housing: { icon: 'fa-house-chimney', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' },
-  Shopping: { icon: 'fa-bag-shopping', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)' },
-  Entertainment: { icon: 'fa-gamepad', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.15)' },
-  Health: { icon: 'fa-heart-pulse', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
-  Education: { icon: 'fa-graduation-cap', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)' },
-  Income: { icon: 'fa-money-bill-trend-up', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)' },
-  Other: { icon: 'fa-ellipsis', color: '#64748b', bg: 'rgba(100, 116, 139, 0.15)' }
+  Food: { icon: 'fa-utensils', color: '#ffb700', bg: 'rgba(255, 183, 0, 0.18)' },
+  Transportation: { icon: 'fa-car', color: '#00f0ff', bg: 'rgba(0, 240, 255, 0.18)' },
+  Housing: { icon: 'fa-house-chimney', color: '#9d4edd', bg: 'rgba(157, 78, 221, 0.18)' },
+  Shopping: { icon: 'fa-bag-shopping', color: '#ff007f', bg: 'rgba(255, 0, 127, 0.18)' },
+  Entertainment: { icon: 'fa-gamepad', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.18)' },
+  Health: { icon: 'fa-heart-pulse', color: '#00ff9d', bg: 'rgba(0, 255, 157, 0.18)' },
+  Education: { icon: 'fa-graduation-cap', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.18)' },
+  Income: { icon: 'fa-money-bill-trend-up', color: '#00ff9d', bg: 'rgba(0, 255, 157, 0.18)' },
+  Other: { icon: 'fa-ellipsis', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.18)' }
 };
 
 // --- Chart Instances ---
@@ -689,7 +689,7 @@ function updateReportMetrics() {
 
   if (elHealthScore) elHealthScore.innerText = `${healthScore}/100`;
   if (elSavingsRate) elSavingsRate.innerText = `${savingsRatio.toFixed(1)}%`;
-  if (elLargestTx) elLargestTx.innerText = maxExpenseTx ? formatCurrency(maxExpenseTx.amount) : '$0.00';
+  if (elLargestTx) elLargestTx.innerText = maxExpenseTx ? formatCurrency(maxExpenseTx.amount) : '₹0.00';
   if (elLargestNote) elLargestNote.innerText = maxExpenseTx ? maxExpenseTx.note : 'None';
   if (elTopMethod) elTopMethod.innerText = topMethodName;
   if (elVelocity) elVelocity.innerText = `${formatCurrency(velocity)}/day`;
@@ -727,7 +727,7 @@ function restartMonthlySpent() {
 
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   
-  if (confirm(`Restart monthly spent for ${currentMonthName}?\n\nThis will clear/archive current month's expenses so your spent counter restarts fresh from $0.00 for ${currentMonthName}.`)) {
+  if (confirm(`Restart monthly spent for ${currentMonthName}?\n\nThis will clear/archive current month's expenses so your spent counter restarts fresh from ₹0.00 for ${currentMonthName}.`)) {
     const currentMonthKey = new Date().toISOString().substring(0, 7);
     // Remove expense transactions for current month to reset monthly counter
     state.transactions = state.transactions.filter(tx => {
@@ -736,7 +736,7 @@ function restartMonthlySpent() {
 
     saveToLocalStorage();
     renderApp();
-    showToast(`Monthly spent restarted to $0.00 for ${currentMonthName}!`, 'success');
+    showToast(`Monthly spent restarted to ₹0.00 for ${currentMonthName}!`, 'success');
   }
 }
 
@@ -963,7 +963,7 @@ function renderMonthlyExpenseChart() {
         tooltip: {
           callbacks: {
             label: function(context) {
-              return ` Total Spent: $${context.raw.toFixed(2)}`;
+              return ` Total Spent: ₹${context.raw.toFixed(2)}`;
             }
           }
         }
@@ -971,7 +971,7 @@ function renderMonthlyExpenseChart() {
       scales: {
         x: { ticks: { color: '#64748b' }, grid: { display: false } },
         y: {
-          ticks: { color: '#64748b', callback: value => '$' + value },
+          ticks: { color: '#64748b', callback: value => '₹' + value },
           grid: { color: 'rgba(255, 255, 255, 0.05)' }
         }
       }
@@ -1020,7 +1020,7 @@ function renderWeeklyExpenseChart() {
     data: {
       labels: dayLabels,
       datasets: [{
-        label: 'Daily Expense ($)',
+        label: 'Daily Expense (₹)',
         data: dayValues,
         backgroundColor: '#10b981',
         hoverBackgroundColor: '#34d399',
@@ -1035,7 +1035,7 @@ function renderWeeklyExpenseChart() {
         tooltip: {
           callbacks: {
             label: function(context) {
-              return ` Spent: $${context.raw.toFixed(2)}`;
+              return ` Spent: ₹${context.raw.toFixed(2)}`;
             }
           }
         }
@@ -1043,7 +1043,7 @@ function renderWeeklyExpenseChart() {
       scales: {
         x: { ticks: { color: '#64748b' }, grid: { display: false } },
         y: {
-          ticks: { color: '#64748b', callback: val => '$' + val },
+          ticks: { color: '#64748b', callback: val => '₹' + val },
           grid: { color: 'rgba(255, 255, 255, 0.05)' }
         }
       }
@@ -1158,7 +1158,7 @@ function renderMethodChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${ctx.raw.toFixed(2)}` } }
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ₹${ctx.raw.toFixed(2)}` } }
       },
       cutout: '65%'
     }
@@ -1216,11 +1216,11 @@ function renderBalanceTrendChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` Net Balance: $${ctx.raw.toFixed(2)}` } }
+        tooltip: { callbacks: { label: ctx => ` Net Balance: ₹${ctx.raw.toFixed(2)}` } }
       },
       scales: {
         x: { ticks: { color: '#64748b' }, grid: { display: false } },
-        y: { ticks: { color: '#64748b', callback: val => '$' + val }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+        y: { ticks: { color: '#64748b', callback: val => '₹' + val }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
       }
     }
   });
@@ -1279,7 +1279,7 @@ function renderCategoryChart() {
         tooltip: {
           callbacks: {
             label: function(context) {
-              return ` ${context.label}: $${context.raw.toFixed(2)}`;
+              return ` ${context.label}: ₹${context.raw.toFixed(2)}`;
             }
           }
         }
@@ -1801,7 +1801,7 @@ function resetAllData() {
 
 // --- Helper Utilities ---
 function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amount);
 }
 
 function formatDate(dateStr) {
