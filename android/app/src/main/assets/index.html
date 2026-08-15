@@ -115,7 +115,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body class="antialiased min-h-screen flex flex-col pb-[90px] bg-[#0A0A0F] text-on-surface">
 
@@ -181,13 +181,13 @@
           <span class="material-symbols-outlined text-sm text-on-surface-variant">edit</span>
         </p>
       </div>
-      <button onclick="openProfileModal()" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-primary-fixed-dim hover:bg-primary-fixed/10 transition-colors" title="Settings">
+      <button onclick="openProfileModal()" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-primary-fixed-dim hover:bg-primary-fixed/10 transition-colors" title="Settings & Profile">
         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
       </button>
     </header>
 
     <!-- Total Balance Card -->
-    <section class="glass-panel rounded-xl p-stack-lg relative overflow-hidden group cursor-pointer" onclick="openSavingsModal()">
+    <section class="glass-panel rounded-xl p-stack-lg relative overflow-hidden group cursor-pointer" onclick="openProfileModal()" title="Click to set base balance">
       <!-- Decorative Glow -->
       <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary-fixed-dim/20 rounded-full blur-3xl group-hover:bg-primary-fixed-dim/30 transition-all duration-500"></div>
       <p class="font-label-sm text-label-sm text-on-surface-variant mb-stack-sm flex items-center gap-2 uppercase">
@@ -295,15 +295,15 @@
       </div>
     </section>
 
-    <!-- Recent Activity Module -->
+    <!-- Recent Activity Module with Edit & Delete Options -->
     <section id="recent-activity-section" class="space-y-stack-md">
       <div class="flex justify-between items-center border-b border-outline-variant/20 pb-2">
         <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">RECENT ACTIVITY</h3>
-        <button onclick="toggleViewAllTransactions()" class="font-label-sm text-label-sm text-primary-fixed hover:text-primary-fixed-dim transition-colors uppercase">VIEW ALL</button>
+        <button onclick="openAllTransactionsModal()" class="font-label-sm text-label-sm text-primary-fixed hover:text-primary-fixed-dim transition-colors uppercase">VIEW ALL</button>
       </div>
 
       <div id="recent-activity-list" class="space-y-stack-sm">
-        <!-- Rendered dynamically via app.js -->
+        <!-- Rendered dynamically via app.js with Edit & Delete buttons -->
       </div>
     </section>
 
@@ -330,7 +330,7 @@
       <span class="material-symbols-outlined mb-1">swap_horiz</span>
       <span>Trade</span>
     </a>
-    <a id="nav-activity" onclick="switchReportTab('heatmap'); return false;" class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-primary/5 scale-110 duration-200 cursor-pointer" href="#">
+    <a id="nav-activity" onclick="openAllTransactionsModal(); return false;" class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-primary/5 scale-110 duration-200 cursor-pointer" href="#">
       <span class="material-symbols-outlined mb-1">history</span>
       <span>Activity</span>
     </a>
@@ -339,8 +339,6 @@
   <!-- KEYPAD TRANSACTION ENTRY MODAL -->
   <div id="transaction-modal" class="modal-backdrop">
     <main class="w-full h-full max-w-md mx-auto relative z-10 flex flex-col h-[884px] max-h-screen bg-surface-container-lowest/95 backdrop-blur-2xl md:border-x md:border-outline-variant/20 md:shadow-2xl overflow-hidden rounded-2xl">
-      
-      <!-- Header -->
       <header class="flex justify-between items-center p-margin-mobile border-b border-outline-variant/20">
         <button onclick="closeTransactionModal()" class="text-on-surface-variant hover:text-primary-fixed transition-colors">
           <span class="material-symbols-outlined">close</span>
@@ -349,7 +347,6 @@
         <div class="w-6"></div>
       </header>
 
-      <!-- Input Area -->
       <section class="flex-1 flex flex-col justify-center items-center p-margin-mobile relative">
         <div class="text-on-surface-variant font-label-sm text-label-sm mb-stack-sm tracking-widest uppercase">AMOUNT</div>
         <div class="flex items-center justify-center font-display-sm text-display-sm text-primary-fixed neon-text tracking-tighter">
@@ -357,7 +354,6 @@
           <span id="amountDisplay">0.00</span>
         </div>
 
-        <!-- Category Selector -->
         <div class="mt-stack-lg w-full">
           <div class="text-on-surface-variant font-label-sm text-label-sm mb-stack-sm tracking-widest text-center uppercase">CATEGORY</div>
           <div class="flex justify-center gap-stack-sm flex-wrap" id="category-selector-container">
@@ -377,7 +373,6 @@
         </div>
       </section>
 
-      <!-- Numeric Keypad -->
       <section class="w-full bg-surface-container/50 backdrop-blur-md border-t border-outline-variant/20 p-stack-md rounded-t-2xl pb-margin-mobile">
         <div class="grid grid-cols-3 gap-unit mb-stack-md">
           <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('1')">1</button>
@@ -401,7 +396,6 @@
         </button>
       </section>
 
-      <!-- Success Overlay -->
       <div id="successOverlay" class="success-overlay absolute inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center">
         <div class="success-icon w-24 h-24 rounded-full bg-primary-container/20 border-2 border-primary-fixed flex items-center justify-center shadow-[0_0_40px_rgba(0,219,233,0.4)] mb-stack-lg">
           <span class="material-symbols-outlined text-primary-fixed text-5xl" style="font-variation-settings: 'FILL' 1;">check</span>
@@ -410,6 +404,84 @@
         <p class="font-body-md text-body-md text-on-surface-variant">Transaction routed to ledger.</p>
       </div>
     </main>
+  </div>
+
+  <!-- EDIT TRANSACTION MODAL -->
+  <div id="edit-modal" class="modal-backdrop">
+    <div class="glass-panel p-6 rounded-xl w-full max-w-sm border-primary-fixed/40">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-label-md text-primary-fixed uppercase tracking-wider flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary-fixed">edit</span> Edit Transaction
+        </h3>
+        <button onclick="closeEditModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <form onsubmit="handleEditSubmit(event)" class="space-y-4">
+        <input type="hidden" id="edit-tx-id">
+        <div>
+          <label class="block font-label-sm text-on-surface-variant mb-1">Transaction Type</label>
+          <select id="edit-tx-type" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm">
+            <option value="expense">Expense (-)</option>
+            <option value="income">Income (+)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-label-sm text-on-surface-variant mb-1">Amount ($)</label>
+          <input type="number" step="any" min="0.01" id="edit-tx-amount" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" required>
+        </div>
+        <div>
+          <label class="block font-label-sm text-on-surface-variant mb-1">Description / Note</label>
+          <input type="text" id="edit-tx-note" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" required>
+        </div>
+        <div>
+          <label class="block font-label-sm text-on-surface-variant mb-1">Category</label>
+          <select id="edit-tx-category" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm">
+            <option value="Food">Food</option>
+            <option value="Fuel">Fuel</option>
+            <option value="Shop">Shop</option>
+            <option value="Transportation">Transportation</option>
+            <option value="Housing">Housing</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Health">Health</option>
+            <option value="Income">Income</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-label-sm text-on-surface-variant mb-1">Date</label>
+          <input type="date" id="edit-tx-date" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" required>
+        </div>
+        <div class="flex justify-between items-center pt-2">
+          <button type="button" onclick="handleDeleteCurrentEditTx()" class="px-3 py-2 rounded-lg bg-error-container/40 text-error font-label-sm hover:bg-error-container flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">delete</span> Delete
+          </button>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ALL TRANSACTIONS LIST MODAL -->
+  <div id="all-transactions-modal" class="modal-backdrop">
+    <div class="glass-panel p-6 rounded-xl w-full max-w-md max-h-[85vh] flex flex-col border-primary-fixed/40">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-label-md text-primary-fixed uppercase tracking-wider flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary-fixed">history</span> All Transactions
+        </h3>
+        <button onclick="closeAllTransactionsModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="mb-3">
+        <input type="text" id="all-tx-search" oninput="renderAllTransactionsList()" placeholder="Search transactions..." class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2 text-sm">
+      </div>
+      <div id="all-tx-list-container" class="flex-1 overflow-y-auto space-y-2 pr-1">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="pt-3 border-t border-outline-variant/20 flex justify-end">
+        <button type="button" onclick="closeAllTransactionsModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Close</button>
+      </div>
+    </div>
   </div>
 
   <!-- CUSTOM SEND MODAL -->
@@ -454,7 +526,7 @@
       <form onsubmit="handleReceiveSubmit(event)" class="space-y-4">
         <div>
           <label class="block font-label-sm text-on-surface-variant mb-1">Sender Name / Source</label>
-          <input type="text" id="receive-sender" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="e.g. Salary, Client, Friend" required>
+          <input type="text" id="receive-sender" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="e.g. Appa, Salary, Friend" required>
         </div>
         <div>
           <label class="block font-label-sm text-on-surface-variant mb-1">Amount ($)</label>
@@ -462,7 +534,7 @@
         </div>
         <div>
           <label class="block font-label-sm text-on-surface-variant mb-1">Note</label>
-          <input type="text" id="receive-note" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="e.g. Payment received">
+          <input type="text" id="receive-note" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="e.g. Received transfer">
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeReceiveModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
@@ -477,7 +549,7 @@
     <div class="glass-panel p-6 rounded-xl w-full max-w-sm border-primary-fixed/40">
       <div class="flex justify-between items-center mb-4">
         <h3 class="font-label-md text-primary-fixed uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary-fixed">person</span> Profile & Preferences
+          <span class="material-symbols-outlined text-primary-fixed">person</span> Profile & Wallet Settings
         </h3>
         <button onclick="closeProfileModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
       </div>
@@ -487,12 +559,12 @@
           <input type="text" id="profile-name-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" placeholder="Sivakumar" required>
         </div>
         <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Baseline Starting Balance ($)</label>
-          <input type="number" step="any" id="profile-balance-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="124592.80">
+          <label class="block font-label-sm text-on-surface-variant mb-1">Starting Base Balance ($)</label>
+          <input type="number" step="any" id="profile-balance-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" placeholder="124942.80" required>
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeProfileModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Save Changes</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Save Settings</button>
         </div>
       </form>
     </div>
@@ -526,6 +598,6 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

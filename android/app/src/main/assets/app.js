@@ -5,15 +5,14 @@
 // --- Application State ---
 let state = {
   userName: 'Sivakumar',
-  baseBalance: 124592.80,
+  baseBalance: 124942.80,
   transactions: [],
   monthlySavings: 1200,
   gistId: '',
   gistToken: '',
   isAdminLoggedIn: true,
   adminPin: '7871',
-  currentFormType: 'expense',
-  editingTxId: null
+  currentFormType: 'expense'
 };
 
 // --- Storage Keys ---
@@ -24,9 +23,10 @@ const GIST_TOKEN_STORAGE = 'smart_expense_tracker_gist_token';
 
 let cloudSyncInterval = null;
 
-// --- Keypad & Transaction Entry State ---
+// --- Keypad & Editing State ---
 let currentKeypadAmount = "0";
 let selectedKeypadCategory = "Fuel";
+let currentEditingTxId = null;
 
 // --- Category Visual Mapping ---
 const CATEGORY_MAP = {
@@ -64,7 +64,9 @@ function loadFromLocalStorage() {
     if (profileRaw) {
       const parsedProfile = JSON.parse(profileRaw);
       if (parsedProfile.userName) state.userName = parsedProfile.userName;
-      if (typeof parsedProfile.baseBalance === 'number') state.baseBalance = parsedProfile.baseBalance;
+      if (typeof parsedProfile.baseBalance === 'number' && !isNaN(parsedProfile.baseBalance) && parsedProfile.baseBalance !== 0) {
+        state.baseBalance = parsedProfile.baseBalance;
+      }
     }
 
     const savedGistId = localStorage.getItem(GIST_ID_STORAGE);
@@ -78,6 +80,9 @@ function loadFromLocalStorage() {
       const parsed = JSON.parse(rawData);
       state.transactions = parsed.transactions || [];
       state.monthlySavings = typeof parsed.monthlySavings !== 'undefined' ? parsed.monthlySavings : 1200;
+      if (typeof parsed.baseBalance === 'number' && !isNaN(parsed.baseBalance) && parsed.baseBalance !== 0) {
+        state.baseBalance = parsed.baseBalance;
+      }
     } else {
       seedDemoData(false);
     }
@@ -139,7 +144,7 @@ async function syncFromCloudDatabase() {
         if (Array.isArray(content.transactions)) {
           state.transactions = content.transactions;
           if (content.userName) state.userName = content.userName;
-          if (typeof content.baseBalance === 'number') state.baseBalance = content.baseBalance;
+          if (typeof content.baseBalance === 'number' && content.baseBalance !== 0) state.baseBalance = content.baseBalance;
           saveToLocalStorage(false);
           renderApp();
         }
@@ -173,13 +178,14 @@ async function syncToCloudDatabase() {
 // --- Seed Initial Data ---
 function seedDemoData(notify = true) {
   state.userName = 'Sivakumar';
-  state.baseBalance = 124592.80;
+  state.baseBalance = 124942.80;
   state.monthlySavings = 1200;
   state.transactions = [
-    { id: 'tx-1', type: 'expense', amount: 150.00, date: new Date().toISOString().split('T')[0], category: 'Transportation', method: 'Debit Card', note: 'Return to Home' },
-    { id: 'tx-2', type: 'expense', amount: 3450.00, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], category: 'Shop', method: 'Debit Card', note: 'Bought ETH (-1.5 ETH)' },
-    { id: 'tx-3', type: 'income', amount: 3210.00, date: new Date(Date.now() - 172800000).toISOString().split('T')[0], category: 'Income', method: 'Bank Transfer', note: 'Received BTC (+0.05 BTC)' },
-    { id: 'tx-4', type: 'expense', amount: 85.00, date: new Date(Date.now() - 259200000).toISOString().split('T')[0], category: 'Fuel', method: 'Credit Card', note: 'Fuel Fill-Up' }
+    { id: 'tx-1', type: 'income', amount: 500.00, date: new Date().toISOString().split('T')[0], category: 'Income', method: 'Bank Transfer', note: 'Received from Appa' },
+    { id: 'tx-2', type: 'expense', amount: 150.00, date: new Date().toISOString().split('T')[0], category: 'Food', method: 'Debit Card', note: 'Food Entry' },
+    { id: 'tx-3', type: 'expense', amount: 12.00, date: new Date().toISOString().split('T')[0], category: 'Food', method: 'Debit Card', note: 'Food Entry' },
+    { id: 'tx-4', type: 'expense', amount: 3450.00, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], category: 'Food', method: 'Debit Card', note: 'Bought ETH (-1.5 ETH)' },
+    { id: 'tx-5', type: 'income', amount: 3210.00, date: new Date(Date.now() - 172800000).toISOString().split('T')[0], category: 'Income', method: 'Bank Transfer', note: 'Received BTC (+0.05 BTC)' }
   ];
   saveToLocalStorage();
   renderApp();
@@ -213,7 +219,7 @@ function openProfileModal() {
   const nameInput = document.getElementById('profile-name-input');
   const balInput = document.getElementById('profile-balance-input');
   if (nameInput) nameInput.value = state.userName || 'Sivakumar';
-  if (balInput) balInput.value = state.baseBalance || 124592.80;
+  if (balInput) balInput.value = (typeof state.baseBalance === 'number' && state.baseBalance !== 0) ? state.baseBalance : 124942.80;
   const modal = document.getElementById('profile-modal');
   if (modal) modal.classList.add('active');
 }
@@ -237,7 +243,7 @@ function handleProfileSubmit(e) {
   saveToLocalStorage();
   closeProfileModal();
   renderApp();
-  showToast(`Profile updated! Hello, ${state.userName}`, 'success');
+  showToast(`Profile & starting balance saved!`, 'success');
 }
 
 // --- Keypad Functions ---
@@ -322,7 +328,126 @@ function triggerSuccess() {
   }
 }
 
-// --- Send Modal Handlers ---
+// --- Transaction Edit & Delete Controls ---
+function openEditModal(txId) {
+  currentEditingTxId = txId;
+  const tx = state.transactions.find(t => t.id === txId);
+  if (!tx) return;
+
+  document.getElementById('edit-tx-id').value = tx.id;
+  document.getElementById('edit-tx-type').value = tx.type || 'expense';
+  document.getElementById('edit-tx-amount').value = tx.amount;
+  document.getElementById('edit-tx-note').value = tx.note || '';
+  document.getElementById('edit-tx-category').value = tx.category || 'Other';
+  document.getElementById('edit-tx-date').value = tx.date || new Date().toISOString().split('T')[0];
+
+  const modal = document.getElementById('edit-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeEditModal() {
+  const modal = document.getElementById('edit-modal');
+  if (modal) modal.classList.remove('active');
+  currentEditingTxId = null;
+}
+
+function handleEditSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-tx-id').value;
+  const type = document.getElementById('edit-tx-type').value;
+  const amount = parseFloat(document.getElementById('edit-tx-amount').value);
+  const note = document.getElementById('edit-tx-note').value.trim();
+  const category = document.getElementById('edit-tx-category').value;
+  const date = document.getElementById('edit-tx-date').value;
+
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Please enter a valid positive amount!', 'danger');
+    return;
+  }
+
+  const idx = state.transactions.findIndex(t => t.id === id);
+  if (idx !== -1) {
+    state.transactions[idx] = {
+      id,
+      type,
+      amount,
+      note,
+      category,
+      date,
+      method: type === 'income' ? 'Bank Transfer' : 'Debit Card'
+    };
+    saveToLocalStorage();
+    closeEditModal();
+    renderApp();
+    showToast('Transaction updated!', 'success');
+  }
+}
+
+function handleDeleteCurrentEditTx() {
+  if (!currentEditingTxId) return;
+  if (confirm('Delete this transaction item permanently?')) {
+    state.transactions = state.transactions.filter(t => t.id !== currentEditingTxId);
+    saveToLocalStorage();
+    closeEditModal();
+    closeAllTransactionsModal();
+    renderApp();
+    showToast('Transaction deleted', 'warning');
+  }
+}
+
+// --- All Transactions List Modal ---
+function openAllTransactionsModal() {
+  renderAllTransactionsList();
+  const modal = document.getElementById('all-transactions-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeAllTransactionsModal() {
+  const modal = document.getElementById('all-transactions-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function renderAllTransactionsList() {
+  const container = document.getElementById('all-tx-list-container');
+  if (!container) return;
+
+  const searchQuery = (document.getElementById('all-tx-search')?.value || '').toLowerCase().trim();
+
+  let filtered = state.transactions.filter(tx => {
+    const note = (tx.note || '').toLowerCase();
+    const category = (tx.category || '').toLowerCase();
+    return note.includes(searchQuery) || category.includes(searchQuery);
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<p class="text-center text-on-surface-variant font-label-sm py-4">No matching transactions found</p>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(tx => {
+    const isIncome = tx.type === 'income';
+    const textColor = isIncome ? 'text-primary-fixed-dim' : 'text-on-surface';
+    const sign = isIncome ? '+' : '-';
+    const displayAmount = `${sign}$${parseFloat(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+    return `
+      <div class="glass-panel rounded-lg p-3 flex justify-between items-center hover:bg-surface-variant/30 transition-colors">
+        <div>
+          <p class="font-body-md text-on-surface text-sm font-semibold">${escapeHtml(tx.note || tx.category)}</p>
+          <p class="font-label-sm text-on-surface-variant text-[11px]">${tx.date} • ${tx.category}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-label-md text-sm font-bold ${textColor}">${displayAmount}</span>
+          <button onclick="openEditModal('${tx.id}')" class="p-1.5 rounded-lg bg-surface-variant hover:text-primary-fixed text-on-surface-variant" title="Edit">
+            <span class="material-symbols-outlined text-sm">edit</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// --- Send & Receive Modals ---
 function openSendModal() {
   document.getElementById('send-recipient').value = '';
   document.getElementById('send-amount').value = '';
@@ -363,7 +488,6 @@ function handleSendSubmit(e) {
   showToast(`Sent $${amount.toFixed(2)} to ${recipient}!`, 'success');
 }
 
-// --- Receive Modal Handlers ---
 function openReceiveModal() {
   document.getElementById('receive-sender').value = '';
   document.getElementById('receive-amount').value = '';
@@ -447,7 +571,10 @@ function openSavingsModal() {
 
 // --- Dynamic Balance Calculation ---
 function calculateMetrics() {
-  let netBalance = state.baseBalance || 124592.80;
+  let base = (typeof state.baseBalance === 'number' && !isNaN(state.baseBalance) && state.baseBalance !== 0)
+    ? state.baseBalance
+    : 124942.80;
+
   let totalIncome = 0;
   let totalExpense = 0;
 
@@ -455,20 +582,25 @@ function calculateMetrics() {
     const val = parseFloat(tx.amount) || 0;
     if (tx.type === 'income') {
       totalIncome += val;
-      netBalance += val;
     } else {
       totalExpense += val;
-      netBalance -= val;
     }
   });
 
+  const netBalance = base + totalIncome - totalExpense;
+
   const balanceEl = document.getElementById('metric-balance');
   if (balanceEl) {
-    balanceEl.innerText = `$${netBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    balanceEl.innerText = formatCurrencyAmount(netBalance);
   }
 }
 
-// --- Recent Activity Renderer ---
+function formatCurrencyAmount(val) {
+  const formatted = Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return val < 0 ? `-$${formatted}` : `$${formatted}`;
+}
+
+// --- Recent Activity Renderer with Edit Option ---
 function renderRecentActivity() {
   const container = document.getElementById('recent-activity-list');
   if (!container) return;
@@ -491,19 +623,27 @@ function renderRecentActivity() {
     const displayAmount = `${sign}$${parseFloat(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
     return `
-      <div class="glass-panel rounded-lg p-stack-md flex justify-between items-center hover:bg-surface-variant/30 cursor-pointer transition-colors">
+      <div onclick="openEditModal('${tx.id}')" class="glass-panel rounded-lg p-stack-md flex justify-between items-center hover:bg-surface-variant/40 cursor-pointer transition-colors group">
         <div class="flex items-center gap-stack-md">
           <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center ${textColor}">
             <span class="material-symbols-outlined">${icon}</span>
           </div>
           <div>
-            <p class="font-body-md text-body-md text-on-surface">${escapeHtml(tx.note || tx.category)}</p>
+            <p class="font-body-md text-body-md text-on-surface flex items-center gap-1 font-semibold">
+              ${escapeHtml(tx.note || tx.category)}
+              <span class="material-symbols-outlined text-xs text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">edit</span>
+            </p>
             <p class="font-label-sm text-label-sm text-on-surface-variant">${tx.date}</p>
           </div>
         </div>
-        <div class="text-right">
-          <p class="font-label-md text-label-md ${textColor}">${displayAmount}</p>
-          <p class="font-label-sm text-label-sm text-on-surface-variant">${tx.category}</p>
+        <div class="text-right flex items-center gap-2">
+          <div>
+            <p class="font-label-md text-label-md ${textColor}">${displayAmount}</p>
+            <p class="font-label-sm text-label-sm text-on-surface-variant">${tx.category}</p>
+          </div>
+          <button onclick="event.stopPropagation(); openEditModal('${tx.id}')" class="p-1 rounded text-on-surface-variant hover:text-primary-fixed transition-colors" title="Edit Transaction">
+            <span class="material-symbols-outlined text-sm">edit</span>
+          </button>
         </div>
       </div>
     `;
@@ -537,8 +677,7 @@ function switchReportTab(tabMode) {
 }
 
 function toggleViewAllTransactions() {
-  switchReportTab('heatmap');
-  showToast('Viewing activity breakdown', 'info');
+  openAllTransactionsModal();
 }
 
 // --- Chart Renderers ---
@@ -560,7 +699,6 @@ function renderMonthlyExpenseChart() {
 
   if (monthlyExpenseChartInstance) monthlyExpenseChartInstance.destroy();
 
-  // Aggregate expenses per YYYY-MM from transactions
   const monthMap = {};
   state.transactions.forEach(tx => {
     if (tx.type === 'expense' && tx.date) {
@@ -572,7 +710,6 @@ function renderMonthlyExpenseChart() {
   let labels = Object.keys(monthMap).sort();
   let data = labels.map(k => monthMap[k]);
 
-  // Fallback defaults if no transactions exist yet
   if (labels.length === 0) {
     labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
     data = [1200, 1900, 1500, 2100, 1800, 2400, 3100, 2980];
@@ -757,6 +894,13 @@ window.closeTransactionModal = closeTransactionModal;
 window.openProfileModal = openProfileModal;
 window.closeProfileModal = closeProfileModal;
 window.handleProfileSubmit = handleProfileSubmit;
+window.openEditModal = openEditModal;
+window.closeEditModal = closeEditModal;
+window.handleEditSubmit = handleEditSubmit;
+window.handleDeleteCurrentEditTx = handleDeleteCurrentEditTx;
+window.openAllTransactionsModal = openAllTransactionsModal;
+window.closeAllTransactionsModal = closeAllTransactionsModal;
+window.renderAllTransactionsList = renderAllTransactionsList;
 window.openSendModal = openSendModal;
 window.closeSendModal = closeSendModal;
 window.handleSendSubmit = handleSendSubmit;
