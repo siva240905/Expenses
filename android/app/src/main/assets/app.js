@@ -4,6 +4,8 @@
 
 // --- Application State ---
 let state = {
+  userName: 'Sivakumar',
+  baseBalance: 124592.80,
   transactions: [],
   monthlySavings: 1200,
   gistId: '',
@@ -16,9 +18,9 @@ let state = {
 
 // --- Storage Keys ---
 const STORAGE_KEY = 'smart_expense_tracker_data_v1';
+const USER_PROFILE_KEY = 'lumina_user_profile_v1';
 const GIST_ID_STORAGE = 'smart_expense_tracker_gist_id';
 const GIST_TOKEN_STORAGE = 'smart_expense_tracker_gist_token';
-const ADMIN_SESSION_STORAGE = 'smart_expense_tracker_admin_session';
 
 let cloudSyncInterval = null;
 
@@ -26,7 +28,7 @@ let cloudSyncInterval = null;
 let currentKeypadAmount = "0";
 let selectedKeypadCategory = "Fuel";
 
-// --- Category Configuration & Visual Mapping ---
+// --- Category Visual Mapping ---
 const CATEGORY_MAP = {
   Food: { icon: 'restaurant', color: '#ffb700', bg: 'rgba(255, 183, 0, 0.18)' },
   Fuel: { icon: 'local_gas_station', color: '#00dbe9', bg: 'rgba(0, 219, 233, 0.18)' },
@@ -43,12 +45,9 @@ const CATEGORY_MAP = {
 
 // --- Chart Instances ---
 let categoryChartInstance = null;
-let trendChartInstance = null;
 let monthlyExpenseChartInstance = null;
 let weeklyExpenseChartInstance = null;
-let weeklyCategoryChartInstance = null;
 let methodChartInstance = null;
-let balanceTrendChartInstance = null;
 let activeReportTab = 'monthly';
 
 // --- Initialize App ---
@@ -61,6 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- LocalStorage Operations ---
 function loadFromLocalStorage() {
   try {
+    const profileRaw = localStorage.getItem(USER_PROFILE_KEY);
+    if (profileRaw) {
+      const parsedProfile = JSON.parse(profileRaw);
+      if (parsedProfile.userName) state.userName = parsedProfile.userName;
+      if (typeof parsedProfile.baseBalance === 'number') state.baseBalance = parsedProfile.baseBalance;
+    }
+
     const savedGistId = localStorage.getItem(GIST_ID_STORAGE);
     if (savedGistId) state.gistId = savedGistId;
 
@@ -83,12 +89,20 @@ function loadFromLocalStorage() {
 
 function saveToLocalStorage(triggerCloudSync = true) {
   try {
+    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify({
+      userName: state.userName,
+      baseBalance: state.baseBalance
+    }));
+
     const payload = {
+      userName: state.userName,
+      baseBalance: state.baseBalance,
       transactions: state.transactions,
       monthlySavings: state.monthlySavings,
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
     if (state.gistId) localStorage.setItem(GIST_ID_STORAGE, state.gistId);
     if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
     
@@ -124,6 +138,8 @@ async function syncFromCloudDatabase() {
         const content = JSON.parse(files[fileKey].content);
         if (Array.isArray(content.transactions)) {
           state.transactions = content.transactions;
+          if (content.userName) state.userName = content.userName;
+          if (typeof content.baseBalance === 'number') state.baseBalance = content.baseBalance;
           saveToLocalStorage(false);
           renderApp();
         }
@@ -137,7 +153,13 @@ async function syncFromCloudDatabase() {
 async function syncToCloudDatabase() {
   if (!state.gistId || !state.gistToken) return;
   try {
-    const payload = { transactions: state.transactions, monthlySavings: state.monthlySavings, updatedAt: new Date().toISOString() };
+    const payload = {
+      userName: state.userName,
+      baseBalance: state.baseBalance,
+      transactions: state.transactions,
+      monthlySavings: state.monthlySavings,
+      updatedAt: new Date().toISOString()
+    };
     await fetch(`https://api.github.com/gists/${state.gistId}`, {
       method: 'PATCH',
       headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${state.gistToken}`, 'Content-Type': 'application/json' },
@@ -150,12 +172,14 @@ async function syncToCloudDatabase() {
 
 // --- Seed Initial Data ---
 function seedDemoData(notify = true) {
+  state.userName = 'Sivakumar';
+  state.baseBalance = 124592.80;
   state.monthlySavings = 1200;
   state.transactions = [
-    { id: 'tx-1', type: 'expense', amount: 3450.00, date: new Date().toISOString().split('T')[0], category: 'Food', method: 'Debit Card', note: 'Bought ETH (-1.5 ETH)' },
-    { id: 'tx-2', type: 'income', amount: 3210.00, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], category: 'Income', method: 'Bank Transfer', note: 'Received BTC (+0.05 BTC)' },
-    { id: 'tx-3', type: 'expense', amount: 85.00, date: new Date(Date.now() - 172800000).toISOString().split('T')[0], category: 'Fuel', method: 'Credit Card', note: 'Fuel Fill-Up' },
-    { id: 'tx-4', type: 'expense', amount: 140.00, date: new Date(Date.now() - 259200000).toISOString().split('T')[0], category: 'Shop', method: 'Debit Card', note: 'Store Supplies' }
+    { id: 'tx-1', type: 'expense', amount: 150.00, date: new Date().toISOString().split('T')[0], category: 'Transportation', method: 'Debit Card', note: 'Return to Home' },
+    { id: 'tx-2', type: 'expense', amount: 3450.00, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], category: 'Shop', method: 'Debit Card', note: 'Bought ETH (-1.5 ETH)' },
+    { id: 'tx-3', type: 'income', amount: 3210.00, date: new Date(Date.now() - 172800000).toISOString().split('T')[0], category: 'Income', method: 'Bank Transfer', note: 'Received BTC (+0.05 BTC)' },
+    { id: 'tx-4', type: 'expense', amount: 85.00, date: new Date(Date.now() - 259200000).toISOString().split('T')[0], category: 'Fuel', method: 'Credit Card', note: 'Fuel Fill-Up' }
   ];
   saveToLocalStorage();
   renderApp();
@@ -164,12 +188,56 @@ function seedDemoData(notify = true) {
 
 // --- Core App Render ---
 function renderApp() {
+  updateProfileUI();
   calculateMetrics();
   renderRecentActivity();
   if (activeReportTab === 'heatmap') {
     renderHeatmapChart();
   }
   renderCharts();
+}
+
+// --- User Profile & Name UI ---
+function updateProfileUI() {
+  const greetingEl = document.getElementById('user-greeting-name');
+  if (greetingEl) {
+    greetingEl.innerHTML = `${escapeHtml(state.userName)} <span class="material-symbols-outlined text-sm text-on-surface-variant">edit</span>`;
+  }
+  const navUserEl = document.getElementById('nav-user-name');
+  if (navUserEl) {
+    navUserEl.innerText = state.userName;
+  }
+}
+
+function openProfileModal() {
+  const nameInput = document.getElementById('profile-name-input');
+  const balInput = document.getElementById('profile-balance-input');
+  if (nameInput) nameInput.value = state.userName || 'Sivakumar';
+  if (balInput) balInput.value = state.baseBalance || 124592.80;
+  const modal = document.getElementById('profile-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeProfileModal() {
+  const modal = document.getElementById('profile-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleProfileSubmit(e) {
+  e.preventDefault();
+  const nameVal = document.getElementById('profile-name-input').value.trim();
+  const balVal = parseFloat(document.getElementById('profile-balance-input').value);
+
+  if (nameVal) {
+    state.userName = nameVal;
+  }
+  if (!isNaN(balVal)) {
+    state.baseBalance = balVal;
+  }
+  saveToLocalStorage();
+  closeProfileModal();
+  renderApp();
+  showToast(`Profile updated! Hello, ${state.userName}`, 'success');
 }
 
 // --- Keypad Functions ---
@@ -254,6 +322,88 @@ function triggerSuccess() {
   }
 }
 
+// --- Send Modal Handlers ---
+function openSendModal() {
+  document.getElementById('send-recipient').value = '';
+  document.getElementById('send-amount').value = '';
+  document.getElementById('send-note').value = '';
+  const modal = document.getElementById('send-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeSendModal() {
+  const modal = document.getElementById('send-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleSendSubmit(e) {
+  e.preventDefault();
+  const recipient = document.getElementById('send-recipient').value.trim();
+  const amount = parseFloat(document.getElementById('send-amount').value);
+  const note = document.getElementById('send-note').value.trim();
+
+  if (!recipient || isNaN(amount) || amount <= 0) {
+    showToast('Please enter recipient and valid amount!', 'danger');
+    return;
+  }
+
+  state.transactions.unshift({
+    id: `tx-${Date.now()}`,
+    type: 'expense',
+    amount: amount,
+    date: new Date().toISOString().split('T')[0],
+    category: 'Transportation',
+    method: 'Bank Transfer',
+    note: note ? `Sent to ${recipient} (${note})` : `Sent to ${recipient}`
+  });
+
+  saveToLocalStorage();
+  closeSendModal();
+  renderApp();
+  showToast(`Sent $${amount.toFixed(2)} to ${recipient}!`, 'success');
+}
+
+// --- Receive Modal Handlers ---
+function openReceiveModal() {
+  document.getElementById('receive-sender').value = '';
+  document.getElementById('receive-amount').value = '';
+  document.getElementById('receive-note').value = '';
+  const modal = document.getElementById('receive-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeReceiveModal() {
+  const modal = document.getElementById('receive-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleReceiveSubmit(e) {
+  e.preventDefault();
+  const sender = document.getElementById('receive-sender').value.trim();
+  const amount = parseFloat(document.getElementById('receive-amount').value);
+  const note = document.getElementById('receive-note').value.trim();
+
+  if (!sender || isNaN(amount) || amount <= 0) {
+    showToast('Please enter sender name and valid amount!', 'danger');
+    return;
+  }
+
+  state.transactions.unshift({
+    id: `tx-${Date.now()}`,
+    type: 'income',
+    amount: amount,
+    date: new Date().toISOString().split('T')[0],
+    category: 'Income',
+    method: 'Bank Transfer',
+    note: note ? `Received from ${sender} (${note})` : `Received from ${sender}`
+  });
+
+  saveToLocalStorage();
+  closeReceiveModal();
+  renderApp();
+  showToast(`Received $${amount.toFixed(2)} from ${sender}!`, 'success');
+}
+
 // --- Modal Controls ---
 function openTransactionModal() {
   currentKeypadAmount = "0";
@@ -288,66 +438,16 @@ function handleVaultFormSubmit(e) {
   saveToLocalStorage();
   closeVaultModal();
   syncFromCloudDatabase();
-  showToast('Vault credentials saved', 'success');
+  showToast('Vault credentials saved & synced', 'success');
 }
 
 function openSavingsModal() {
-  const newTarget = prompt('Set Monthly Target Amount ($):', state.monthlySavings);
-  if (newTarget !== null) {
-    const val = parseFloat(newTarget);
-    if (!isNaN(val) && val >= 0) {
-      state.monthlySavings = val;
-      saveToLocalStorage();
-      renderApp();
-      showToast(`Savings target updated to $${val.toFixed(2)}`, 'success');
-    }
-  }
+  openProfileModal();
 }
 
-function openSendAction() {
-  const recipient = prompt('Enter recipient address / name:');
-  if (recipient) {
-    const amtStr = prompt('Enter amount to send ($):');
-    const amt = parseFloat(amtStr);
-    if (!isNaN(amt) && amt > 0) {
-      state.transactions.unshift({
-        id: `tx-${Date.now()}`,
-        type: 'expense',
-        amount: amt,
-        date: new Date().toISOString().split('T')[0],
-        category: 'Other',
-        method: 'Bank Transfer',
-        note: `Sent to ${recipient}`
-      });
-      saveToLocalStorage();
-      renderApp();
-      showToast(`Sent $${amt.toFixed(2)} to ${recipient}`, 'success');
-    }
-  }
-}
-
-function openReceiveAction() {
-  const amtStr = prompt('Enter amount received ($):');
-  const amt = parseFloat(amtStr);
-  if (!isNaN(amt) && amt > 0) {
-    state.transactions.unshift({
-      id: `tx-${Date.now()}`,
-      type: 'income',
-      amount: amt,
-      date: new Date().toISOString().split('T')[0],
-      category: 'Income',
-      method: 'Bank Transfer',
-      note: `Received transfer`
-    });
-    saveToLocalStorage();
-    renderApp();
-    showToast(`Received $${amt.toFixed(2)}`, 'success');
-  }
-}
-
-// --- Metrics Calculation ---
+// --- Dynamic Balance Calculation ---
 function calculateMetrics() {
-  let netBalance = 124592.80; // Starting baseline
+  let netBalance = state.baseBalance || 124592.80;
   let totalIncome = 0;
   let totalExpense = 0;
 
@@ -410,7 +510,7 @@ function renderRecentActivity() {
   }).join('');
 }
 
-// --- Report Tabs Router ---
+// --- Report Tabs Router & Dynamic Chart Renderer ---
 function switchReportTab(tabMode) {
   activeReportTab = tabMode;
 
@@ -419,9 +519,9 @@ function switchReportTab(tabMode) {
     const panel = document.getElementById(`panel-report-${t}`);
     if (btn) {
       if (t === tabMode) {
-        btn.className = "px-3.5 py-1.5 rounded-lg bg-primary-container/20 text-primary-fixed border border-primary-fixed/40 font-label-sm active";
+        btn.className = "px-3.5 py-1.5 rounded-lg bg-primary-container/20 text-primary-fixed border border-primary-fixed/40 font-label-sm active cursor-pointer";
       } else {
-        btn.className = "px-3.5 py-1.5 rounded-lg bg-surface-variant text-on-surface-variant font-label-sm";
+        btn.className = "px-3.5 py-1.5 rounded-lg bg-surface-variant text-on-surface-variant font-label-sm cursor-pointer";
       }
     }
     if (panel) {
@@ -430,13 +530,15 @@ function switchReportTab(tabMode) {
   });
 
   requestAnimationFrame(() => {
-    renderApp();
+    setTimeout(() => {
+      renderCharts();
+    }, 50);
   });
 }
 
 function toggleViewAllTransactions() {
   switchReportTab('heatmap');
-  showToast('Viewing full transaction history', 'info');
+  showToast('Viewing activity breakdown', 'info');
 }
 
 // --- Chart Renderers ---
@@ -446,6 +548,8 @@ function renderCharts() {
     renderCategoryChart();
   } else if (activeReportTab === 'weekly') {
     renderWeeklyExpenseChart();
+  } else if (activeReportTab === 'database') {
+    renderMethodChart();
   }
 }
 
@@ -456,8 +560,23 @@ function renderMonthlyExpenseChart() {
 
   if (monthlyExpenseChartInstance) monthlyExpenseChartInstance.destroy();
 
-  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
-  const data = [1200, 1900, 1500, 2100, 1800, 2400, 3100, 2980];
+  // Aggregate expenses per YYYY-MM from transactions
+  const monthMap = {};
+  state.transactions.forEach(tx => {
+    if (tx.type === 'expense' && tx.date) {
+      const monthKey = tx.date.substring(0, 7);
+      monthMap[monthKey] = (monthMap[monthKey] || 0) + parseFloat(tx.amount);
+    }
+  });
+
+  let labels = Object.keys(monthMap).sort();
+  let data = labels.map(k => monthMap[k]);
+
+  // Fallback defaults if no transactions exist yet
+  if (labels.length === 0) {
+    labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+    data = [1200, 1900, 1500, 2100, 1800, 2400, 3100, 2980];
+  }
 
   monthlyExpenseChartInstance = new Chart(ctx, {
     type: 'line',
@@ -467,9 +586,12 @@ function renderMonthlyExpenseChart() {
         label: 'Expenses ($)',
         data: data,
         borderColor: '#00dbe9',
-        backgroundColor: 'rgba(0, 219, 233, 0.1)',
+        borderWidth: 2,
+        backgroundColor: 'rgba(0, 219, 233, 0.12)',
         fill: true,
-        tension: 0.4
+        tension: 0.4,
+        pointBackgroundColor: '#00dbe9',
+        pointRadius: 4
       }]
     },
     options: {
@@ -478,7 +600,7 @@ function renderMonthlyExpenseChart() {
       plugins: { legend: { display: false } },
       scales: {
         x: { ticks: { color: '#849495' }, grid: { display: false } },
-        y: { ticks: { color: '#849495' }, grid: { color: 'rgba(132, 148, 149, 0.1)' } }
+        y: { ticks: { color: '#849495', callback: val => '$' + val }, grid: { color: 'rgba(132, 148, 149, 0.1)' } }
       }
     }
   });
@@ -491,20 +613,37 @@ function renderCategoryChart() {
 
   if (categoryChartInstance) categoryChartInstance.destroy();
 
+  const catMap = {};
+  state.transactions.forEach(tx => {
+    if (tx.type === 'expense') {
+      catMap[tx.category] = (catMap[tx.category] || 0) + parseFloat(tx.amount);
+    }
+  });
+
+  let labels = Object.keys(catMap);
+  let data = Object.values(catMap);
+
+  if (labels.length === 0) {
+    labels = ['Food', 'Fuel', 'Shop', 'Housing', 'Transportation'];
+    data = [450, 250, 150, 800, 150];
+  }
+
+  const colors = labels.map(c => CATEGORY_MAP[c] ? CATEGORY_MAP[c].color : '#849495');
+
   categoryChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Food', 'Fuel', 'Shop', 'Housing', 'Other'],
+      labels: labels,
       datasets: [{
-        data: [45, 25, 15, 10, 5],
-        backgroundColor: ['#ffb700', '#00dbe9', '#ecb1ff', '#9d4edd', '#849495'],
+        data: data,
+        backgroundColor: colors,
         borderWidth: 0
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { color: '#e4e1e9' } } },
+      plugins: { legend: { position: 'bottom', labels: { color: '#e4e1e9', font: { family: 'Geist', size: 11 } } } },
       cutout: '70%'
     }
   });
@@ -517,13 +656,16 @@ function renderWeeklyExpenseChart() {
 
   if (weeklyExpenseChartInstance) weeklyExpenseChartInstance.destroy();
 
+  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayData = [120, 240, 180, 310, 290, 450, 190];
+
   weeklyExpenseChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      labels: dayLabels,
       datasets: [{
         label: 'Daily Spent ($)',
-        data: [120, 240, 180, 310, 290, 450, 190],
+        data: dayData,
         backgroundColor: '#d05bff',
         borderRadius: 6
       }]
@@ -534,8 +676,34 @@ function renderWeeklyExpenseChart() {
       plugins: { legend: { display: false } },
       scales: {
         x: { ticks: { color: '#849495' }, grid: { display: false } },
-        y: { ticks: { color: '#849495' }, grid: { color: 'rgba(132, 148, 149, 0.1)' } }
+        y: { ticks: { color: '#849495', callback: val => '$' + val }, grid: { color: 'rgba(132, 148, 149, 0.1)' } }
       }
+    }
+  });
+}
+
+function renderMethodChart() {
+  const canvas = document.getElementById('methodChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  if (methodChartInstance) methodChartInstance.destroy();
+
+  methodChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Debit Card', 'Credit Card', 'Bank Transfer', 'Cash'],
+      datasets: [{
+        data: [60, 25, 10, 5],
+        backgroundColor: ['#00dbe9', '#d05bff', '#00ff9d', '#ffb700'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { color: '#e4e1e9' } } },
+      cutout: '65%'
     }
   });
 }
@@ -586,12 +754,19 @@ window.selectCategory = selectCategory;
 window.triggerSuccess = triggerSuccess;
 window.openTransactionModal = openTransactionModal;
 window.closeTransactionModal = closeTransactionModal;
+window.openProfileModal = openProfileModal;
+window.closeProfileModal = closeProfileModal;
+window.handleProfileSubmit = handleProfileSubmit;
+window.openSendModal = openSendModal;
+window.closeSendModal = closeSendModal;
+window.handleSendSubmit = handleSendSubmit;
+window.openReceiveModal = openReceiveModal;
+window.closeReceiveModal = closeReceiveModal;
+window.handleReceiveSubmit = handleReceiveSubmit;
 window.openVaultModal = openVaultModal;
 window.closeVaultModal = closeVaultModal;
 window.handleVaultFormSubmit = handleVaultFormSubmit;
 window.openSavingsModal = openSavingsModal;
-window.openSendAction = openSendAction;
-window.openReceiveAction = openReceiveAction;
 window.switchReportTab = switchReportTab;
 window.toggleViewAllTransactions = toggleViewAllTransactions;
 window.resetAllData = resetAllData;
