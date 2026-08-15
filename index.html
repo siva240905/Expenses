@@ -363,7 +363,7 @@
           <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Monthly Spent / Target</span>
           <span id="current-month-badge" class="font-label-sm text-label-sm bg-surface-variant px-2 py-1 rounded text-on-surface border border-outline-variant/30">July 2026</span>
         </div>
-        <div class="flex justify-between items-baseline mb-2">
+        <div class="flex justify-between items-baseline mb-2 flex-wrap gap-x-2 gap-y-1">
           <div id="metric-expense" class="font-headline-lg text-headline-lg text-error tracking-tight">₹0.00</div>
           <div id="metric-savings" class="font-label-md text-primary-fixed-dim">₹0.00 Target</div>
         </div>
@@ -614,7 +614,7 @@
   </nav>
 
   <!-- Modal Dialog: Add / Edit Transaction -->
-  <div id="transaction-modal" class="modal-backdrop">
+  <div id="transaction-modal" class="modal-backdrop" style="display: none !important;">
     <div class="modal-box">
       <div class="modal-header">
         <h2 id="modal-title">Add Transaction</h2>
@@ -681,7 +681,7 @@
   </div>
 
   <!-- Modal Dialog: Edit Monthly Savings -->
-  <div id="savings-modal" class="modal-backdrop">
+  <div id="savings-modal" class="modal-backdrop" style="display: none !important;">
     <div class="modal-box">
       <div class="modal-header">
         <h2>Set Monthly Savings Target</h2>
@@ -704,7 +704,7 @@
   </div>
 
   <!-- Modal Dialog: GitHub Gist Database Config -->
-  <div id="vault-modal" class="modal-backdrop">
+  <div id="vault-modal" class="modal-backdrop" style="display: none !important;">
     <div class="modal-box">
       <div class="modal-header">
         <h2><i class="fa-brands fa-github"></i> GitHub Gist Cloud Database</h2>
@@ -728,7 +728,7 @@
   </div>
 
   <!-- Modal Dialog: Admin PIN Authentication -->
-  <div id="admin-modal" class="modal-backdrop">
+  <div id="admin-modal" class="modal-backdrop" style="display: none !important;">
     <div class="modal-box" style="max-width: 400px;">
       <div class="modal-header">
         <h2><i class="fa-solid fa-user-shield"></i> Admin Access</h2>

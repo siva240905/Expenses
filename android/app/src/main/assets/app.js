@@ -1410,11 +1410,18 @@ function openTransactionModal(txId = null) {
     setFormType('expense');
   }
 
-  modal.classList.add('active');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
 }
 
 function closeTransactionModal() {
-  document.getElementById('transaction-modal').classList.remove('active');
+  const modal = document.getElementById('transaction-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
   state.editingTxId = null;
   isSubmittingTx = false;
 }
@@ -1424,7 +1431,10 @@ function openSavingsModal() {
   if (savingsInput) savingsInput.value = state.monthlySavings || 0;
 
   const modal = document.getElementById('savings-modal');
-  if (modal) modal.classList.add('active');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
 
   setTimeout(() => {
     if (savingsInput) {
@@ -1436,7 +1446,10 @@ function openSavingsModal() {
 
 function closeSavingsModal() {
   const modal = document.getElementById('savings-modal');
-  if (modal) modal.classList.remove('active');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
 }
 
 function setFormType(type) {
@@ -1513,7 +1526,10 @@ function openVaultModal() {
   if (gistTokenInput) gistTokenInput.value = state.gistToken || '';
 
   const modal = document.getElementById('vault-modal');
-  if (modal) modal.classList.add('active');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
 
   setTimeout(() => {
     if (gistIdInput) {
@@ -1525,7 +1541,10 @@ function openVaultModal() {
 
 function closeVaultModal() {
   const modal = document.getElementById('vault-modal');
-  if (modal) modal.classList.remove('active');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
 }
 
 function handleVaultFormSubmit(e) {
@@ -1559,7 +1578,10 @@ function openAdminModal() {
   if (input) input.value = '';
 
   const modal = document.getElementById('admin-modal');
-  if (modal) modal.classList.add('active');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
 
   setTimeout(() => {
     if (input) input.focus();
@@ -1568,7 +1590,10 @@ function openAdminModal() {
 
 function closeAdminModal() {
   const modal = document.getElementById('admin-modal');
-  if (modal) modal.classList.remove('active');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
 }
 
 function handleAdminFormSubmit(e) {
