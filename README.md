@@ -31,7 +31,14 @@ You can install **Expenses Spender** directly as a native-feeling app on Android
 
 ---
 
-### Option 3: 🤖 Android Studio Project (`/android`)
+### Option 3: 📦 Download Built Android APK from GitHub
+GitHub Actions automatically builds and publishes compiled `.apk` files on every commit:
+- 🚀 **[Download Latest APK Release](https://github.com/siva240905/Expenses/releases)**
+- ⚡ **[Download GitHub Actions Build Artifacts](https://github.com/siva240905/Expenses/actions)**
+
+---
+
+### Option 4: 🤖 Android Studio Project (`/android`)
 The repository includes a complete native Android WebKit wrapper project:
 - **Location**: [`/android`](android)
 - **Source Code**: [`android/app/src/main/java/com/expenseflow/app/MainActivity.kt`](android/app/src/main/java/com/expenseflow/app/MainActivity.kt)
