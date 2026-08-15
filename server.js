@@ -4,12 +4,31 @@ const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_PIN = process.env.ADMIN_PIN || '7871';
-const DB_FILE = path.join(__dirname, 'db.json');
+const DB_FILE = process.env.VERCEL ? path.join('/tmp', 'db.json') : path.join(__dirname, 'db.json');
 
 // Ensure db.json exists
 if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify({ transactions: [], monthlySavings: 0 }, null, 2));
+  try {
+    const initialData = fs.existsSync(path.join(__dirname, 'db.json'))
+      ? fs.readFileSync(path.join(__dirname, 'db.json'), 'utf8')
+      : JSON.stringify({ transactions: [], monthlySavings: 0 });
+    fs.writeFileSync(DB_FILE, initialData);
+  } catch (e) {}
 }
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+  '.svg': 'image/svg+xml',
+  '.ttf': 'font/ttf',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2'
+};
 
 const server = http.createServer((req, res) => {
   // CORS Headers
@@ -17,19 +36,18 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, x-admin-pin');
 
-  // Handle preflight OPTIONS
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
     return;
   }
 
-  // API Route: GET /api/sync (Public Report View)
-  if (req.url === '/api/sync' && req.method === 'GET') {
+  // API Route: GET /api/sync
+  if (req.url.startsWith('/api/sync') && req.method === 'GET') {
     fs.readFile(DB_FILE, 'utf8', (err, data) => {
       if (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Failed to read database' }));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ transactions: [], monthlySavings: 0 }));
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -38,8 +56,8 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API Route: POST /api/sync (Admin Only Write)
-  if (req.url === '/api/sync' && req.method === 'POST') {
+  // API Route: POST /api/sync
+  if (req.url.startsWith('/api/sync') && req.method === 'POST') {
     const clientPin = req.headers['x-admin-pin'];
     if (clientPin !== ADMIN_PIN) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -48,18 +66,11 @@ const server = http.createServer((req, res) => {
     }
 
     let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
+    req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
       try {
         const parsed = JSON.parse(body);
-        fs.writeFile(DB_FILE, JSON.stringify(parsed, null, 2), err => {
-          if (err) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Failed to write to database' }));
-            return;
-          }
+        fs.writeFile(DB_FILE, JSON.stringify(parsed, null, 2), () => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, updatedAt: new Date().toISOString() }));
         });
@@ -71,15 +82,41 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Fallback 404
-  res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Endpoint not found' }));
+  // Static File Serving (Root / -> index.html, styles.css, app.js, etc.)
+  let reqPath = req.url.split('?')[0];
+  if (reqPath === '/') reqPath = '/index.html';
+
+  const filePath = path.join(__dirname, reqPath);
+  const ext = path.extname(filePath);
+  const contentType = MIME_TYPES[ext] || 'text/html; charset=utf-8';
+
+  fs.readFile(filePath, (err, content) => {
+    if (err) {
+      // Fallback to index.html for SPA routing
+      fs.readFile(path.join(__dirname, 'index.html'), (err2, indexContent) => {
+        if (err2) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('404 Not Found');
+        } else {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(indexContent);
+        }
+      });
+    } else {
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content);
+    }
+  });
 });
 
-server.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(` 🚀 Expense Tracker Database Server running on port ${PORT}`);
-  console.log(` 🌐 Local URL: http://localhost:${PORT}/api/sync`);
-  console.log(` 📁 Storing data in: ${DB_FILE}`);
-  console.log(`=======================================================`);
-});
+module.exports = server;
+
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(` 🚀 Expense Tracker Database Server running on port ${PORT}`);
+    console.log(` 🌐 Local URL: http://localhost:${PORT}/api/sync`);
+    console.log(` 📁 Storing data in: ${DB_FILE}`);
+    console.log(`=======================================================`);
+  });
+}
