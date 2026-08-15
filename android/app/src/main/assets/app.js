@@ -1377,6 +1377,15 @@ function initEventListeners() {
   safeAddListener('filter-category', 'change', renderTransactionsTable);
   safeAddListener('filter-sort', 'change', renderTransactionsTable);
 
+  safeAddListener('nav-btn-cloud-sync', 'click', openVaultModal);
+  safeAddListener('nav-btn-savings', 'click', openSavingsModal);
+  safeAddListener('nav-btn-admin', 'click', toggleAdminMode);
+  safeAddListener('nav-btn-vault', 'click', openVaultModal);
+  safeAddListener('nav-btn-reset', 'click', resetAllData);
+
+  safeAddListener('btn-admin-login', 'click', toggleAdminMode);
+  safeAddListener('btn-sync-now', 'click', syncFromCloudDatabase);
+
   safeAddListener('btn-reset-data', 'click', resetAllData);
   safeAddListener('btn-demo-data', 'click', () => seedDemoData(true));
 }

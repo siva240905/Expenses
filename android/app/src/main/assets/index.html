@@ -203,10 +203,10 @@
         </a>
       </li>
       <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openVaultModal()">
+        <button id="nav-btn-cloud-sync" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openVaultModal()">
           <span class="material-symbols-outlined">account_balance_wallet</span>
           <span id="sync-status-pill">Cloud Sync: Gist</span>
-        </a>
+        </button>
       </li>
       <li>
         <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out" href="#transactions-section">
@@ -215,32 +215,32 @@
         </a>
       </li>
       <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openSavingsModal()">
+        <button id="nav-btn-savings" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openSavingsModal()">
           <span class="material-symbols-outlined">currency_exchange</span>
           Savings Target
-        </a>
+        </button>
       </li>
       <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="toggleAdminMode()">
+        <button id="nav-btn-admin" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="toggleAdminMode()">
           <span class="material-symbols-outlined">shield</span>
           <span id="admin-btn-text">Admin Login</span>
-        </a>
+        </button>
       </li>
     </ul>
 
     <div class="mt-auto pt-stack-md border-t border-outline-variant/20">
       <ul class="space-y-unit">
         <li>
-          <a class="flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openVaultModal()">
+          <button id="nav-btn-vault" type="button" class="w-full text-left flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openVaultModal()">
             <span class="material-symbols-outlined text-[18px]">help</span>
             Vault Settings
-          </a>
+          </button>
         </li>
         <li>
-          <a class="flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="resetAllData()">
+          <button id="nav-btn-reset" type="button" class="w-full text-left flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="resetAllData()">
             <span class="material-symbols-outlined text-[18px]">logout</span>
             Reset Data
-          </a>
+          </button>
         </li>
       </ul>
     </div>
