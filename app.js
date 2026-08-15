@@ -1377,12 +1377,22 @@ function initEventListeners() {
   safeAddListener('filter-category', 'change', renderTransactionsTable);
   safeAddListener('filter-sort', 'change', renderTransactionsTable);
 
+  // Desktop Sidebar Nav Handlers
+  safeAddListener('nav-btn-dashboard', 'click', () => { switchReportTab('monthly'); window.scrollTo({top:0, behavior:'smooth'}); });
   safeAddListener('nav-btn-cloud-sync', 'click', openVaultModal);
+  safeAddListener('nav-btn-transactions', 'click', () => document.getElementById('transactions-section')?.scrollIntoView({behavior:'smooth'}));
   safeAddListener('nav-btn-savings', 'click', openSavingsModal);
   safeAddListener('nav-btn-admin', 'click', toggleAdminMode);
   safeAddListener('nav-btn-vault', 'click', openVaultModal);
   safeAddListener('nav-btn-reset', 'click', resetAllData);
 
+  // Mobile Bottom Nav Handlers
+  safeAddListener('mnav-monthly', 'click', () => switchReportTab('monthly'));
+  safeAddListener('mnav-weekly', 'click', () => switchReportTab('weekly'));
+  safeAddListener('mnav-database', 'click', () => switchReportTab('database'));
+  safeAddListener('mnav-heatmap', 'click', () => switchReportTab('heatmap'));
+
+  // Header Handlers
   safeAddListener('btn-admin-login', 'click', toggleAdminMode);
   safeAddListener('btn-sync-now', 'click', syncFromCloudDatabase);
 

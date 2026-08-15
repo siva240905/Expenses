@@ -197,10 +197,10 @@
 
     <ul class="flex-1 space-y-unit">
       <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary-container/20 text-secondary border-r-4 border-secondary font-label-md text-label-md transition-all duration-150 ease-in-out" href="#">
+        <button id="nav-btn-dashboard" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary-container/20 text-secondary border-r-4 border-secondary font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="switchReportTab('monthly'); window.scrollTo({top:0, behavior:'smooth'});">
           <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
           Dashboard
-        </a>
+        </button>
       </li>
       <li>
         <button id="nav-btn-cloud-sync" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openVaultModal()">
@@ -209,10 +209,10 @@
         </button>
       </li>
       <li>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out" href="#transactions-section">
+        <button id="nav-btn-transactions" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="document.getElementById('transactions-section')?.scrollIntoView({behavior:'smooth'})">
           <span class="material-symbols-outlined">receipt_long</span>
           Transactions
-        </a>
+        </button>
       </li>
       <li>
         <button id="nav-btn-savings" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openSavingsModal()">
@@ -590,27 +590,27 @@
 
   <!-- BottomNavBar (Mobile) -->
   <nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-background/90 backdrop-blur-lg border-t border-primary/20 rounded-t-xl shadow-[0_-8px_20px_rgba(0,219,233,0.1)]">
-    <a class="flex flex-col items-center justify-center text-primary-fixed-dim p-2" href="#" onclick="switchReportTab('monthly')">
+    <button id="mnav-monthly" type="button" class="flex flex-col items-center justify-center text-primary-fixed-dim p-2 cursor-pointer active" onclick="switchReportTab('monthly')">
       <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
       <span class="font-label-sm text-label-sm mt-1">Monthly</span>
-    </a>
-    <a class="flex flex-col items-center justify-center text-on-surface-variant p-2" href="#" onclick="switchReportTab('weekly')">
+    </button>
+    <button id="mnav-weekly" type="button" class="flex flex-col items-center justify-center text-on-surface-variant p-2 cursor-pointer" onclick="switchReportTab('weekly')">
       <span class="material-symbols-outlined">bar_chart</span>
       <span class="font-label-sm text-label-sm mt-1">Weekly</span>
-    </a>
+    </button>
     <div class="relative -top-6 admin-only">
-      <button onclick="openTransactionModal()" class="w-14 h-14 rounded-full bg-primary-fixed-dim text-on-primary-fixed flex items-center justify-center shadow-[0_0_20px_rgba(0,219,233,0.4)] kinetic-border overflow-hidden">
+      <button onclick="openTransactionModal()" type="button" class="w-14 h-14 rounded-full bg-primary-fixed-dim text-on-primary-fixed flex items-center justify-center shadow-[0_0_20px_rgba(0,219,233,0.4)] kinetic-border overflow-hidden cursor-pointer">
         <span class="material-symbols-outlined relative z-10 text-[28px]">add</span>
       </button>
     </div>
-    <a class="flex flex-col items-center justify-center text-on-surface-variant p-2" href="#" onclick="switchReportTab('database')">
+    <button id="mnav-database" type="button" class="flex flex-col items-center justify-center text-on-surface-variant p-2 cursor-pointer" onclick="switchReportTab('database')">
       <span class="material-symbols-outlined">psychology</span>
       <span class="font-label-sm text-label-sm mt-1">AI Insights</span>
-    </a>
-    <a class="flex flex-col items-center justify-center text-on-surface-variant p-2" href="#" onclick="switchReportTab('heatmap')">
+    </button>
+    <button id="mnav-heatmap" type="button" class="flex flex-col items-center justify-center text-on-surface-variant p-2 cursor-pointer" onclick="switchReportTab('heatmap')">
       <span class="material-symbols-outlined">local_fire_department</span>
       <span class="font-label-sm text-label-sm mt-1">Activity</span>
-    </a>
+    </button>
   </nav>
 
   <!-- Modal Dialog: Add / Edit Transaction -->
