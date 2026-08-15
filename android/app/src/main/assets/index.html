@@ -115,7 +115,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body class="antialiased min-h-screen flex flex-col pb-[90px] bg-[#0A0A0F] text-on-surface">
 
@@ -155,7 +155,7 @@
       </li>
       <li>
         <button type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary-fixed hover:bg-surface-variant/30 font-label-md transition-all" onclick="openProfileModal()">
-          <span class="material-symbols-outlined">settings</span> Profile & Settings
+          <span class="material-symbols-outlined">settings</span> Profile Settings
         </button>
       </li>
     </ul>
@@ -179,13 +179,13 @@
           <span class="material-symbols-outlined text-sm text-on-surface-variant">edit</span>
         </p>
       </div>
-      <button onclick="openProfileModal()" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-primary-fixed-dim hover:bg-primary-fixed/10 transition-colors" title="Settings & Profile">
+      <button onclick="openProfileModal()" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-primary-fixed-dim hover:bg-primary-fixed/10 transition-colors" title="Profile Settings">
         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
       </button>
     </header>
 
     <!-- Total Balance Card -->
-    <section class="glass-panel rounded-xl p-stack-lg relative overflow-hidden group cursor-pointer" onclick="openProfileModal()" title="Click to set base balance">
+    <section class="glass-panel rounded-xl p-stack-lg relative overflow-hidden group">
       <!-- Decorative Glow -->
       <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary-fixed-dim/20 rounded-full blur-3xl group-hover:bg-primary-fixed-dim/30 transition-all duration-500"></div>
       <p class="font-label-sm text-label-sm text-on-surface-variant mb-stack-sm flex items-center gap-2 uppercase">
@@ -195,7 +195,7 @@
       <h2 id="metric-balance" class="font-display-sm text-display-sm text-primary-fixed neon-text-glow tracking-tight">₹1,24,942.80</h2>
       <div class="flex items-center gap-2 mt-stack-md text-secondary-fixed">
         <span class="material-symbols-outlined text-sm">trending_up</span>
-        <span id="metric-balance-change" class="font-label-md text-label-md">+2.4% Today • Net Ledger Synced</span>
+        <span id="metric-balance-change" class="font-label-md text-label-md">+2.4% Today • Cloud Ledger Synced</span>
       </div>
     </section>
 
@@ -301,7 +301,7 @@
       </div>
 
       <div id="recent-activity-list" class="space-y-stack-sm">
-        <!-- Rendered dynamically via app.js with Indian Rupee formatting -->
+        <!-- Rendered dynamically via app.js -->
       </div>
     </section>
 
@@ -394,7 +394,7 @@
         </button>
       </section>
 
-      <div id="successOverlay" class="success-overlay absolute inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center">
+      <div id="successOverlay" class="success-overlay absolute inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center pointer-events-none">
         <div class="success-icon w-24 h-24 rounded-full bg-primary-container/20 border-2 border-primary-fixed flex items-center justify-center shadow-[0_0_40px_rgba(0,219,233,0.4)] mb-stack-lg">
           <span class="material-symbols-outlined text-primary-fixed text-5xl" style="font-variation-settings: 'FILL' 1;">check</span>
         </div>
@@ -542,12 +542,12 @@
     </div>
   </div>
 
-  <!-- PROFILE & SETTINGS MODAL -->
+  <!-- PROFILE SETTINGS MODAL (Starting Base Balance removed, Name editable) -->
   <div id="profile-modal" class="modal-backdrop">
     <div class="glass-panel p-6 rounded-xl w-full max-w-sm border-primary-fixed/40">
       <div class="flex justify-between items-center mb-4">
         <h3 class="font-label-md text-primary-fixed uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary-fixed">person</span> Profile & Wallet Settings
+          <span class="material-symbols-outlined text-primary-fixed">person</span> Profile Settings
         </h3>
         <button onclick="closeProfileModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
       </div>
@@ -556,13 +556,10 @@
           <label class="block font-label-sm text-on-surface-variant mb-1">Your Name</label>
           <input type="text" id="profile-name-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" placeholder="Sivakumar" required>
         </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Starting Base Balance (₹)</label>
-          <input type="number" step="any" id="profile-balance-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" placeholder="124942.80" required>
-        </div>
+        <p class="font-label-sm text-on-surface-variant text-[11px]">Total starting balance is automatically synced with cloud storage.</p>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeProfileModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Save Settings</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Save Name</button>
         </div>
       </form>
     </div>
@@ -596,6 +593,6 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

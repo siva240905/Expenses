@@ -156,7 +156,7 @@ async function syncFromCloudDatabase() {
         if (Array.isArray(content.transactions)) {
           state.transactions = content.transactions;
           if (content.userName) state.userName = content.userName;
-          if (typeof content.baseBalance === 'number' && content.baseBalance !== 0) state.baseBalance = content.baseBalance;
+          if (typeof content.baseBalance === 'number') state.baseBalance = content.baseBalance;
           saveToLocalStorage(false);
           renderApp();
         }
@@ -231,9 +231,7 @@ function updateProfileUI() {
 
 function openProfileModal() {
   const nameInput = document.getElementById('profile-name-input');
-  const balInput = document.getElementById('profile-balance-input');
   if (nameInput) nameInput.value = state.userName || 'Sivakumar';
-  if (balInput) balInput.value = (typeof state.baseBalance === 'number' && state.baseBalance !== 0) ? state.baseBalance : 124942.80;
   const modal = document.getElementById('profile-modal');
   if (modal) modal.classList.add('active');
 }
@@ -246,18 +244,14 @@ function closeProfileModal() {
 function handleProfileSubmit(e) {
   e.preventDefault();
   const nameVal = document.getElementById('profile-name-input').value.trim();
-  const balVal = parseFloat(document.getElementById('profile-balance-input').value);
 
   if (nameVal) {
     state.userName = nameVal;
   }
-  if (!isNaN(balVal)) {
-    state.baseBalance = balVal;
-  }
   saveToLocalStorage();
   closeProfileModal();
   renderApp();
-  showToast(`Profile & starting balance saved!`, 'success');
+  showToast(`Profile name updated!`, 'success');
 }
 
 // --- Keypad Functions ---
@@ -333,12 +327,14 @@ function triggerSuccess() {
       updateDisplay();
       closeTransactionModal();
       renderApp();
-    }, 1600);
+      showToast(`Logged ₹${amountVal.toFixed(2)} (${selectedKeypadCategory})!`, 'success');
+    }, 700);
   } else {
     currentKeypadAmount = "0";
     updateDisplay();
     closeTransactionModal();
     renderApp();
+    showToast(`Logged ₹${amountVal.toFixed(2)} (${selectedKeypadCategory})!`, 'success');
   }
 }
 
@@ -546,11 +542,15 @@ function handleReceiveSubmit(e) {
 function openTransactionModal() {
   currentKeypadAmount = "0";
   updateDisplay();
+  const overlay = document.getElementById('successOverlay');
+  if (overlay) overlay.classList.remove('active');
   const modal = document.getElementById('transaction-modal');
   if (modal) modal.classList.add('active');
 }
 
 function closeTransactionModal() {
+  const overlay = document.getElementById('successOverlay');
+  if (overlay) overlay.classList.remove('active');
   const modal = document.getElementById('transaction-modal');
   if (modal) modal.classList.remove('active');
 }
