@@ -70,7 +70,28 @@
   background: rgba(0, 219, 233, 0.5);
 }
 
-/* Modal Dialog System (Hidden by default) */
+/* Global Select & Dropdown Option Styling */
+select {
+  background-color: #161b2b !important;
+  color: #ffffff !important;
+  font-family: 'Inter', sans-serif !important;
+  border: 1px solid rgba(0, 219, 233, 0.3) !important;
+  cursor: pointer;
+}
+
+select option {
+  background-color: #161b2b !important;
+  color: #ffffff !important;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif !important;
+}
+
+select option:checked, select option:hover {
+  background-color: #00dbe9 !important;
+  color: #002022 !important;
+}
+
+/* Modal Dialog System */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -177,15 +198,10 @@
   transition: all 0.25s ease;
 }
 
-.form-control:focus {
+.form-control:focus, select:focus, input:focus {
   outline: none;
   border-color: #00dbe9 !important;
   box-shadow: 0 0 15px rgba(0, 219, 233, 0.4) !important;
-}
-
-select.form-control option {
-  background: #161b2b !important;
-  color: #ffffff !important;
 }
 
 .radio-toggle-group {
