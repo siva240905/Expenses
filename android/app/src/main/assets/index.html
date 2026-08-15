@@ -3,22 +3,28 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
-  <meta name="description" content="Lumina Finance - Cyber Void Personal Expense & Asset Tracker">
+  <meta name="description" content="Coin Flow - Personal Finance Tracker & Expense Manager">
   <meta name="theme-color" content="#0A0A0F">
-  <title>Lumina Finance - Home</title>
+  <title>Coin Flow - Personal Finance Tracker</title>
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 
   <!-- Tailwind CSS CDN with plugins -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-  <!-- Google Fonts & Icons -->
+  <!-- Google Fonts & Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase SDK CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <!-- Tailwind Configuration -->
   <script id="tailwind-config">
@@ -91,504 +97,647 @@
             "unit": "4px"
           },
           "fontFamily": {
-            "body-md": ["Geist", "sans-serif"],
-            "body-lg": ["Geist", "sans-serif"],
-            "headline-lg": ["Space Grotesk", "sans-serif"],
-            "display-sm": ["Space Grotesk", "sans-serif"],
-            "headline-lg-mobile": ["Space Grotesk", "sans-serif"],
-            "display-lg": ["Space Grotesk", "sans-serif"],
-            "label-md": ["JetBrains Mono", "monospace"],
-            "label-sm": ["JetBrains Mono", "monospace"]
+            "body-md": ["Inter", "sans-serif"],
+            "body-lg": ["Inter", "sans-serif"],
+            "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+            "display-sm": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
+            "display-lg": ["Plus Jakarta Sans", "sans-serif"],
+            "label-md": ["Fira Code", "monospace"],
+            "label-sm": ["Fira Code", "monospace"]
           },
           "fontSize": {
             "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
             "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
-            "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "600" }],
-            "display-sm": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
-            "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "600" }],
-            "display-lg": ["72px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700" }],
-            "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "500" }],
-            "label-sm": ["12px", { "lineHeight": "1.4", "letterSpacing": "0.1em", "fontWeight": "500" }]
+            "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+            "display-sm": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+            "display-lg": ["72px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "800" }],
+            "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "label-sm": ["12px", { "lineHeight": "1.4", "letterSpacing": "0.08em", "fontWeight": "500" }]
           }
         }
       }
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=6">
+  <!-- Application Custom Styles -->
+  <link rel="stylesheet" href="styles.css?v=3">
+
+  <style>
+    /* Kinetic UI Custom Styles from Stitch */
+    .glass-panel {
+      background-color: rgba(19, 19, 24, 0.7);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(132, 148, 149, 0.2);
+      transition: all 0.3s ease;
+    }
+    .glass-panel:hover {
+      border-color: rgba(0, 219, 233, 0.5);
+      box-shadow: 0 0 15px rgba(0, 219, 233, 0.1);
+    }
+    .neon-text-primary {
+      text-shadow: 0 0 8px rgba(125, 244, 255, 0.4);
+    }
+    .neon-text-secondary {
+      text-shadow: 0 0 8px rgba(249, 216, 255, 0.4);
+    }
+    .kinetic-border {
+      position: relative;
+      overflow: hidden;
+    }
+    .kinetic-border::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(transparent, transparent, rgba(0, 219, 233, 0.1), transparent, transparent);
+      transform: rotate(45deg);
+      animation: kinetic-scan 3s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes kinetic-scan {
+      0% { transform: translateY(-100%) rotate(45deg); }
+      100% { transform: translateY(100%) rotate(45deg); }
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px currentColor;
+    }
+  </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col pb-[90px] bg-[#0A0A0F] text-on-surface">
+<body class="bg-[#0A0A0F] text-on-surface font-body-md min-h-screen flex flex-col md:flex-row overflow-x-hidden selection:bg-primary-fixed-dim selection:text-on-primary-fixed">
 
-  <!-- Background Particles -->
-  <div class="particles-bg"></div>
+  <!-- Ambient Background Effect -->
+  <div class="fixed inset-0 pointer-events-none z-[-1]" style="background: radial-gradient(circle at 50% 0%, rgba(0,219,233,0.05) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(208,91,255,0.03) 0%, transparent 50%);"></div>
 
-  <!-- Desktop SideNav Bar -->
-  <nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest/80 backdrop-blur-2xl border-r border-outline-variant/20 p-stack-md z-40">
-    <div class="mb-stack-lg flex items-center gap-stack-sm cursor-pointer" onclick="openProfileModal()">
-      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-fixed-dim to-secondary-container flex items-center justify-center shadow-[0_0_15px_rgba(0,219,233,0.3)]">
-        <span class="material-symbols-outlined text-on-primary-fixed" style="font-variation-settings: 'FILL' 1;">account_circle</span>
-      </div>
+  <!-- SideNavBar (Desktop) -->
+  <nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest/60 backdrop-blur-2xl border-r border-outline-variant/20 p-stack-md z-40 transition-all duration-150 ease-in-out">
+    <div class="mb-stack-lg flex items-center gap-stack-sm">
+      <img src="icon.png" alt="Coin Flow Logo" class="w-10 h-10 rounded-lg object-contain bg-white p-1 shadow-[0_0_15px_rgba(0,219,233,0.3)]"/>
       <div>
-        <h1 class="font-headline-lg text-headline-lg text-primary-fixed-dim tracking-tighter leading-none">LUMINA</h1>
-        <span id="nav-user-name" class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest opacity-90">Sivakumar</span>
+        <h1 class="font-headline-lg text-headline-lg text-primary-fixed-dim tracking-tighter leading-none">COIN FLOW</h1>
+        <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest opacity-70">Personal Finance</span>
       </div>
     </div>
 
-    <button onclick="openTransactionModal()" class="w-full bg-primary-fixed-dim text-on-primary-fixed font-label-md text-label-md py-3 rounded-lg mb-stack-lg hover:bg-primary-fixed transition-colors shadow-[0_0_15px_rgba(0,219,233,0.3)] flex items-center justify-center gap-2">
-      <span class="material-symbols-outlined text-[20px]">add</span> New Entry
+    <!-- Add Transaction / New Trade Button -->
+    <button id="btn-add-transaction" onclick="openTransactionModal()" class="admin-only w-full bg-primary-fixed-dim text-on-primary-fixed font-label-md text-label-md py-3 rounded-DEFAULT mb-stack-lg hover:bg-primary-fixed transition-colors shadow-[0_0_10px_rgba(0,219,233,0.2)] kinetic-border overflow-hidden relative">
+      <span class="relative z-10 flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">add</span>
+        Add Transaction
+      </span>
     </button>
 
-    <ul class="flex-1 space-y-stack-sm">
+    <ul class="flex-1 space-y-unit">
       <li>
-        <button type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg bg-primary-container/20 text-primary-fixed border-r-2 border-primary-fixed font-label-md transition-all" onclick="switchReportTab('monthly')">
-          <span class="material-symbols-outlined">home</span> Home Dashboard
+        <button id="nav-btn-dashboard" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary-container/20 text-secondary border-r-4 border-secondary font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="switchReportTab('monthly'); window.scrollTo({top:0, behavior:'smooth'});">
+          <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+          Dashboard
         </button>
       </li>
       <li>
-        <button type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary-fixed hover:bg-surface-variant/30 font-label-md transition-all" onclick="openVaultModal()">
+        <button id="nav-btn-cloud-sync" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openVaultModal()">
           <span class="material-symbols-outlined">account_balance_wallet</span>
-          <span id="sync-status-pill">Cloud Sync</span>
+          <span id="sync-status-pill">Cloud Sync: Gist</span>
         </button>
       </li>
       <li>
-        <button type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary-fixed hover:bg-surface-variant/30 font-label-md transition-all" onclick="switchReportTab('weekly')">
-          <span class="material-symbols-outlined">bar_chart</span> Weekly View
+        <button id="nav-btn-transactions" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="document.getElementById('transactions-section')?.scrollIntoView({behavior:'smooth'})">
+          <span class="material-symbols-outlined">receipt_long</span>
+          Transactions
         </button>
       </li>
       <li>
-        <button type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary-fixed hover:bg-surface-variant/30 font-label-md transition-all" onclick="openProfileModal()">
-          <span class="material-symbols-outlined">settings</span> Profile & Settings
+        <button id="nav-btn-savings" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openSavingsModal()">
+          <span class="material-symbols-outlined">currency_exchange</span>
+          Savings Target
+        </button>
+      </li>
+      <li>
+        <button id="nav-btn-admin" type="button" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="toggleAdminMode()">
+          <span class="material-symbols-outlined">shield</span>
+          <span id="admin-btn-text">Admin Login</span>
         </button>
       </li>
     </ul>
 
     <div class="mt-auto pt-stack-md border-t border-outline-variant/20">
-      <button type="button" class="w-full text-left flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-error transition-all font-label-md" onclick="resetAllData()">
-        <span class="material-symbols-outlined text-[18px]">logout</span> Reset Ledger
-      </button>
+      <ul class="space-y-unit">
+        <li>
+          <button id="nav-btn-vault" type="button" class="w-full text-left flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="openVaultModal()">
+            <span class="material-symbols-outlined text-[18px]">help</span>
+            Vault Settings
+          </button>
+        </li>
+        <li>
+          <button id="nav-btn-reset" type="button" class="w-full text-left flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-secondary-fixed-dim hover:bg-surface-variant/30 font-label-md text-label-md transition-all duration-150 ease-in-out cursor-pointer" onclick="resetAllData()">
+            <span class="material-symbols-outlined text-[18px]">logout</span>
+            Reset Data
+          </button>
+        </li>
+      </ul>
     </div>
   </nav>
 
-  <!-- Main Mobile/Responsive Canvas -->
-  <main class="flex-1 px-margin-mobile pt-stack-lg space-y-gutter w-full max-w-md md:max-w-4xl mx-auto relative z-10 md:pl-72">
+  <!-- TopNavBar (Mobile Header) -->
+  <header class="md:hidden flex justify-between items-center px-margin-mobile py-4 w-full sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-outline-variant/20">
+    <div class="flex items-center gap-2">
+      <img src="icon.png" alt="Coin Flow Logo" class="w-8 h-8 rounded-lg object-contain bg-white p-0.5"/>
+      <h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold tracking-tighter text-primary-fixed">COIN FLOW</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="text-on-surface-variant hover:text-primary-fixed transition-colors" onclick="syncFromCloudDatabase()" title="Sync Gist Data">
+        <span class="material-symbols-outlined">sync</span>
+      </button>
+      <button class="text-on-surface-variant hover:text-primary-fixed transition-colors" onclick="toggleAdminMode()" title="Toggle Admin Login">
+        <span class="material-symbols-outlined">lock</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Canvas -->
+  <main class="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop pb-24 md:pb-margin-desktop relative">
     
-    <!-- Header Section -->
-    <header class="flex justify-between items-center w-full">
-      <div class="cursor-pointer group" onclick="openProfileModal()" title="Click to edit profile name">
-        <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Good Morning,</h1>
-        <p id="user-greeting-name" class="font-body-md text-body-md text-primary-fixed flex items-center gap-1 font-semibold group-hover:text-primary-fixed-dim">
-          Sivakumar
-          <span class="material-symbols-outlined text-sm text-on-surface-variant">edit</span>
+    <!-- Header Actions (Desktop Overview Header) -->
+    <div class="hidden md:flex justify-between items-end mb-stack-lg">
+      <div>
+        <h2 class="font-display-sm text-display-sm text-on-surface mb-2 tracking-tight">Overview</h2>
+        <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">
+          System Status <span class="status-dot bg-primary-fixed-dim ml-2"></span> <span class="text-primary-fixed-dim ml-1">Optimal</span>
         </p>
       </div>
-      <button onclick="openProfileModal()" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-primary-fixed-dim hover:bg-primary-fixed/10 transition-colors" title="Settings & Profile">
-        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
-      </button>
-    </header>
-
-    <!-- Total Balance Card -->
-    <section class="glass-panel rounded-xl p-stack-lg relative overflow-hidden group cursor-pointer" onclick="openProfileModal()" title="Click to set base balance">
-      <!-- Decorative Glow -->
-      <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary-fixed-dim/20 rounded-full blur-3xl group-hover:bg-primary-fixed-dim/30 transition-all duration-500"></div>
-      <p class="font-label-sm text-label-sm text-on-surface-variant mb-stack-sm flex items-center gap-2 uppercase">
-        TOTAL BALANCE
-        <span class="w-1.5 h-1.5 rounded-full bg-primary-fixed-dim shadow-[0_0_8px_#00dbe9]"></span>
-      </p>
-      <h2 id="metric-balance" class="font-display-sm text-display-sm text-primary-fixed neon-text-glow tracking-tight">$124,942.80</h2>
-      <div class="flex items-center gap-2 mt-stack-md text-secondary-fixed">
-        <span class="material-symbols-outlined text-sm">trending_up</span>
-        <span id="metric-balance-change" class="font-label-md text-label-md">+2.4% Today • Net Ledger Synced</span>
+      <div class="flex gap-3 items-center">
+        <button id="btn-admin-login" class="px-4 py-2 rounded-lg border border-outline-variant/30 text-on-surface-variant hover:text-primary-fixed hover:border-primary-fixed/50 transition-all bg-surface/50 backdrop-blur-md font-label-md" onclick="toggleAdminMode()">
+          <i class="fa-solid fa-lock mr-1" id="admin-icon"></i> <span id="admin-btn-text">Admin Login</span>
+        </button>
+        <button id="btn-sync-now" class="px-4 py-2 rounded-lg border border-outline-variant/30 text-on-surface-variant hover:text-primary-fixed hover:border-primary-fixed/50 transition-all bg-surface/50 backdrop-blur-md font-label-md" onclick="syncFromCloudDatabase()">
+          <i class="fa-solid fa-arrows-rotate mr-1"></i> Sync
+        </button>
       </div>
-    </section>
+    </div>
 
-    <!-- Quick Actions (Bento Grid Style) -->
-    <section class="grid grid-cols-2 gap-stack-sm">
-      <button onclick="openSendModal()" class="glass-panel rounded-lg p-stack-md flex flex-col items-start gap-stack-sm scan-line-hover text-on-surface hover:text-primary-fixed-dim transition-colors text-left w-full cursor-pointer">
-        <div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-primary-fixed-dim">
-          <span class="material-symbols-outlined">send</span>
-        </div>
-        <span class="font-label-md text-label-md">Send</span>
-      </button>
-      <button onclick="openReceiveModal()" class="glass-panel rounded-lg p-stack-md flex flex-col items-start gap-stack-sm scan-line-hover text-on-surface hover:text-secondary-fixed transition-colors text-left w-full cursor-pointer">
-        <div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-secondary-fixed">
-          <span class="material-symbols-outlined">download</span>
-        </div>
-        <span class="font-label-md text-label-md">Receive</span>
-      </button>
-    </section>
-
-    <!-- Navigation / Report Tabs Bar -->
-    <section class="flex gap-2 flex-wrap pb-1">
-      <button id="tab-btn-monthly" class="px-3.5 py-1.5 rounded-lg bg-primary-container/20 text-primary-fixed border border-primary-fixed/40 font-label-sm active cursor-pointer" onclick="switchReportTab('monthly')">
-        Monthly
-      </button>
-      <button id="tab-btn-weekly" class="px-3.5 py-1.5 rounded-lg bg-surface-variant text-on-surface-variant font-label-sm cursor-pointer" onclick="switchReportTab('weekly')">
-        Weekly
-      </button>
-      <button id="tab-btn-database" class="px-3.5 py-1.5 rounded-lg bg-surface-variant text-on-surface-variant font-label-sm cursor-pointer" onclick="switchReportTab('database')">
-        AI Insights
-      </button>
-      <button id="tab-btn-heatmap" class="px-3.5 py-1.5 rounded-lg bg-surface-variant text-on-surface-variant font-label-sm cursor-pointer" onclick="switchReportTab('heatmap')">
-        365 Activity
-      </button>
-    </section>
-
-    <!-- Analytics Charts (Dynamic Reports & Graphs) -->
-    <section id="analytics-reports-section" class="space-y-stack-md">
-      <!-- Monthly Panel -->
-      <div id="panel-report-monthly" class="report-panel space-y-stack-md">
-        <div class="glass-panel rounded-xl p-stack-md">
-          <div class="flex justify-between items-center mb-3">
-            <h4 class="font-headline-lg text-[18px] text-on-surface">Monthly Expense Trend</h4>
-            <span class="font-label-sm text-primary-fixed-dim">Real-Time Graph</span>
-          </div>
-          <div class="h-[220px] relative w-full">
-            <canvas id="monthlyExpenseChart"></canvas>
+    <!-- PWA Mobile App Install Prompt Banner -->
+    <div id="pwa-install-banner" class="glass-panel rounded-xl p-stack-md mb-stack-md border-primary-fixed-dim/30" style="display: none;">
+      <div class="flex justify-between items-center flex-wrap gap-3">
+        <div class="flex items-center gap-3">
+          <img src="icon.png" alt="Coin Flow" class="w-10 h-10 rounded-lg object-contain bg-white p-1"/>
+          <div>
+            <strong class="font-label-md text-on-surface block">Install Coin Flow App</strong>
+            <span class="font-label-sm text-on-surface-variant">Add to homescreen for fast 1-tap personal finance tracking</span>
           </div>
         </div>
-        <div class="glass-panel rounded-xl p-stack-md">
-          <div class="flex justify-between items-center mb-3">
-            <h4 class="font-headline-lg text-[18px] text-on-surface">Category Distribution</h4>
-            <span class="font-label-sm text-secondary">Breakdown</span>
-          </div>
-          <div class="h-[220px] relative w-full">
-            <canvas id="categoryChart"></canvas>
-          </div>
+        <div class="flex gap-2">
+          <button id="btn-pwa-install" class="px-3 py-1.5 rounded bg-primary-fixed-dim text-on-primary-fixed font-label-sm" onclick="installPWAApp()">Install</button>
+          <button class="px-3 py-1.5 rounded bg-surface-variant text-on-surface-variant font-label-sm" onclick="dismissPWABanner()">Dismiss</button>
         </div>
       </div>
+    </div>
 
-      <!-- Weekly Panel -->
-      <div id="panel-report-weekly" class="report-panel space-y-stack-md" style="display: none;">
-        <div class="glass-panel rounded-xl p-stack-md">
-          <div class="flex justify-between items-center mb-3">
-            <h4 class="font-headline-lg text-[18px] text-on-surface">Weekly Expense Graph</h4>
-            <span class="font-label-sm text-secondary-fixed">Daily Spending</span>
+    <!-- Month Filter & Period Selector Bar -->
+    <div class="glass-panel rounded-xl p-4 mb-stack-md flex justify-between items-center flex-wrap gap-4">
+      <div class="flex items-center gap-3 font-label-md">
+        <span class="material-symbols-outlined text-primary-fixed-dim">calendar_today</span>
+        <span class="text-on-surface font-bold">Metric View Period:</span>
+        <select id="filter-month" class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm" onchange="handleMonthFilterChange(event)">
+          <option value="current">Current Month (Auto-Restarts)</option>
+          <option value="all">All Time History</option>
+        </select>
+      </div>
+      <div class="font-label-sm text-on-surface-variant flex items-center gap-2">
+        <span class="status-dot bg-secondary"></span> Auto-resets on 1st of every month
+      </div>
+    </div>
+
+    <!-- Bento Grid Layout: KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-stack-md md:gap-gutter mb-stack-lg">
+      
+      <!-- Net Balance Card -->
+      <div class="col-span-1 md:col-span-4 glass-panel rounded-xl p-stack-md flex flex-col relative overflow-hidden group">
+        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <span class="material-symbols-outlined text-[64px] text-primary-fixed">account_balance_wallet</span>
+        </div>
+        <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Net Balance</span>
+        <div id="metric-balance" class="font-display-sm text-display-sm md:text-[40px] text-on-surface neon-text-primary tracking-tighter mb-4">₹0.00</div>
+        <div class="flex items-center gap-2 mt-auto">
+          <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-fixed/10 text-primary-fixed">
+            <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+          </span>
+          <span class="font-label-sm text-label-sm text-primary-fixed">Cumulative Net Worth <span class="text-on-surface-variant">(All-Time)</span></span>
+        </div>
+        <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary-fixed-dim to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+      </div>
+
+      <!-- Monthly Income Card -->
+      <div class="col-span-1 md:col-span-4 glass-panel rounded-xl p-stack-md flex flex-col relative overflow-hidden group">
+        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <span class="material-symbols-outlined text-[64px] text-secondary">trending_up</span>
+        </div>
+        <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Monthly Income</span>
+        <div id="metric-income" class="font-display-sm text-display-sm md:text-[40px] text-on-surface neon-text-secondary tracking-tighter mb-4">₹0.00</div>
+        <div class="flex items-center gap-2 mt-auto">
+          <span class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/10 text-secondary">
+            <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+          </span>
+          <span class="font-label-sm text-label-sm text-secondary">Calendar Month Cashflow</span>
+        </div>
+        <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-secondary to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+      </div>
+
+      <!-- Monthly Spent & Savings Card -->
+      <div class="col-span-1 md:col-span-4 glass-panel rounded-xl p-stack-md flex flex-col relative overflow-hidden group cursor-pointer" onclick="handleSavingsCardClick()" title="Click to edit monthly savings target">
+        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <span class="material-symbols-outlined text-[64px] text-outline">savings</span>
+        </div>
+        <div class="flex justify-between items-start mb-2">
+          <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Monthly Spent / Target</span>
+          <span id="current-month-badge" class="font-label-sm text-label-sm bg-surface-variant px-2 py-1 rounded text-on-surface border border-outline-variant/30">July 2026</span>
+        </div>
+        <div class="flex justify-between items-baseline mb-2 flex-wrap gap-x-2 gap-y-1">
+          <div id="metric-expense" class="font-headline-lg text-headline-lg text-error tracking-tight">₹0.00</div>
+          <div id="metric-savings" class="font-label-md text-primary-fixed-dim">₹0.00 Target</div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full h-2 bg-surface-variant rounded-full overflow-hidden mt-auto mb-2 relative">
+          <div id="savings-progress-bar" class="absolute top-0 left-0 h-full w-[100%] bg-primary-fixed-dim shadow-[0_0_10px_#00dbe9] transition-all duration-500"></div>
+        </div>
+        <div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+          <span id="metric-count">0 items logged</span>
+          <span id="savings-subtext-info" class="text-primary-fixed-dim">Click to Edit Target</span>
+        </div>
+        <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-outline-variant to-transparent opacity-50"></div>
+      </div>
+
+    </div>
+
+    <!-- Single-Line Rapid Entry / Fast Transaction Log -->
+    <div class="glass-panel rounded-xl p-stack-md mb-stack-lg admin-only">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="font-headline-lg text-[18px] text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary">bolt</span> Rapid Transaction Entry
+        </h3>
+        <span class="font-label-sm text-on-surface-variant">Quick Shortcuts</span>
+      </div>
+      <div class="flex gap-2 flex-wrap mb-3">
+        <button class="px-2.5 py-1 rounded bg-surface-variant text-on-surface font-label-sm hover:border-primary-fixed-dim border border-transparent" onclick="quickAddPreset('Food', 'Grocery / Dining', 'expense')">🍕 Food</button>
+        <button class="px-2.5 py-1 rounded bg-surface-variant text-on-surface font-label-sm hover:border-primary-fixed-dim border border-transparent" onclick="quickAddPreset('Transportation', 'Fuel / Transport', 'expense')">⛽ Fuel</button>
+        <button class="px-2.5 py-1 rounded bg-surface-variant text-on-surface font-label-sm hover:border-primary-fixed-dim border border-transparent" onclick="quickAddPreset('Shopping', 'Shopping Items', 'expense')">🛍️ Shopping</button>
+        <button class="px-2.5 py-1 rounded bg-surface-variant text-on-surface font-label-sm hover:border-primary-fixed-dim border border-transparent" onclick="quickAddPreset('Housing', 'Bills & Utilities', 'expense')">💡 Bills</button>
+        <button class="px-2.5 py-1 rounded bg-surface-variant text-on-surface font-label-sm hover:border-primary-fixed-dim border border-transparent" onclick="quickAddPreset('Income', 'Salary Paycheck', 'income')">💰 Salary</button>
+      </div>
+      <form id="quick-add-form" onsubmit="handleQuickAddSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+        <input type="number" step="any" min="0.01" id="quick-amount" class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-2 text-sm" placeholder="Amount (₹)" required>
+        <select id="quick-type" class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-2 text-sm" required>
+          <option value="expense">Expense (-)</option>
+          <option value="income">Income (+)</option>
+        </select>
+        <select id="quick-category" class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-2 text-sm" required>
+          <option value="Food">Food & Dining</option>
+          <option value="Transportation">Transportation</option>
+          <option value="Housing">Housing & Utilities</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Health">Health & Fitness</option>
+          <option value="Education">Education</option>
+          <option value="Income">Salary / Income</option>
+          <option value="Other">Other / Misc</option>
+        </select>
+        <input type="text" id="quick-note" class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-2 text-sm md:col-span-1" placeholder="Description / Note" required>
+        <button type="submit" class="bg-primary-fixed-dim text-on-primary-fixed font-label-md rounded-lg py-2 hover:bg-primary-fixed transition-colors flex items-center justify-center gap-1">
+          <span class="material-symbols-outlined text-[18px]">add</span> Add
+        </button>
+      </form>
+    </div>
+
+    <!-- Analytics & Reports Section -->
+    <section class="mb-stack-lg">
+      <div class="flex gap-2 mb-stack-md flex-wrap">
+        <button id="tab-btn-monthly" class="px-4 py-2 rounded-lg bg-primary-fixed/20 text-primary-fixed border border-primary-fixed/30 font-label-md flex items-center gap-2 active" onclick="switchReportTab('monthly')">
+          <span class="material-symbols-outlined text-[18px]">calendar_month</span> Monthly Report
+        </button>
+        <button id="tab-btn-weekly" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface-variant border border-outline-variant/20 font-label-md flex items-center gap-2" onclick="switchReportTab('weekly')">
+          <span class="material-symbols-outlined text-[18px]">bar_chart</span> Weekly Report
+        </button>
+        <button id="tab-btn-database" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface-variant border border-outline-variant/20 font-label-md flex items-center gap-2" onclick="switchReportTab('database')">
+          <span class="material-symbols-outlined text-[18px]">psychology</span> AI Insights
+        </button>
+        <button id="tab-btn-heatmap" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface-variant border border-outline-variant/20 font-label-md flex items-center gap-2" onclick="switchReportTab('heatmap')">
+          <span class="material-symbols-outlined text-[18px]">local_fire_department</span> 365-Day Activity
+        </button>
+      </div>
+
+      <!-- PANEL 1: Monthly Reports -->
+      <div id="panel-report-monthly" class="report-panel">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-stack-md md:gap-gutter">
+          <div class="col-span-1 md:col-span-8 glass-panel rounded-xl p-stack-md min-h-[320px] flex flex-col">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant/20 relative">
+              <h3 class="font-headline-lg text-headline-lg text-on-surface text-[24px]">Monthly Expenses</h3>
+              <div class="flex gap-2 font-label-sm">
+                <button class="px-3 py-1 rounded bg-primary-fixed/20 text-primary-fixed border border-primary-fixed/30">1M</button>
+                <button class="px-3 py-1 rounded bg-surface-variant text-on-surface">3M</button>
+                <button class="px-3 py-1 rounded bg-surface-variant text-on-surface">1Y</button>
+              </div>
+              <div class="absolute -bottom-[1px] left-0 w-8 h-[2px] bg-primary-fixed shadow-[0_0_8px_#7df4ff]"></div>
+            </div>
+            <div class="flex-1 relative w-full h-[250px]">
+              <canvas id="monthlyExpenseChart"></canvas>
+            </div>
           </div>
-          <div class="h-[240px] relative w-full">
-            <canvas id="weeklyExpenseChart"></canvas>
+
+          <div class="col-span-1 md:col-span-4 glass-panel rounded-xl p-stack-md min-h-[320px] flex flex-col">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant/20 relative">
+              <h3 class="font-headline-lg text-headline-lg text-on-surface text-[24px]">Category Share</h3>
+              <div class="absolute -bottom-[1px] left-0 w-8 h-[2px] bg-secondary shadow-[0_0_8px_#ecb1ff]"></div>
+            </div>
+            <div class="flex-1 relative w-full h-[250px]">
+              <canvas id="categoryChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- AI Insights Panel -->
+      <!-- PANEL 2: Weekly Reports -->
+      <div id="panel-report-weekly" class="report-panel" style="display: none;">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-stack-md md:gap-gutter">
+          <div class="col-span-1 md:col-span-8 glass-panel rounded-xl p-stack-md min-h-[320px] flex flex-col">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant/20">
+              <h3 class="font-headline-lg text-headline-lg text-on-surface text-[24px]">Weekly Expenses Graph</h3>
+            </div>
+            <div class="flex-1 relative w-full h-[250px]">
+              <canvas id="weeklyExpenseChart"></canvas>
+            </div>
+          </div>
+
+          <div class="col-span-1 md:col-span-4 glass-panel rounded-xl p-stack-md min-h-[320px] flex flex-col">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant/20">
+              <h3 class="font-headline-lg text-headline-lg text-on-surface text-[24px]">Weekly Categories</h3>
+            </div>
+            <div class="flex-1 relative w-full h-[250px]">
+              <canvas id="weeklyCategoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 3: AI Insights -->
       <div id="panel-report-database" class="report-panel" style="display: none;">
-        <div class="glass-panel rounded-xl p-stack-md">
-          <div class="flex justify-between items-center mb-3">
-            <h4 class="font-headline-lg text-[18px] text-on-surface flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary-fixed-dim">psychology</span> AI Financial Health
-            </h4>
-            <span id="analysis-health-score" class="font-label-sm text-primary-fixed-dim">88/100</span>
+        <div class="glass-panel rounded-xl p-stack-md mb-stack-md">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-headline-lg text-[22px] text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary-fixed-dim">psychology</span> Financial Health & Insights
+            </h3>
+            <div class="px-3 py-1 rounded-full bg-primary-fixed-dim/20 text-primary-fixed-dim font-label-md border border-primary-fixed-dim/30">
+              Health Score: <span id="analysis-health-score">88/100</span>
+            </div>
           </div>
-          <ul id="db-analysis-insights-list" class="space-y-2 text-sm text-on-surface-variant mb-4"></ul>
-          <div class="h-[200px] relative w-full">
-            <canvas id="methodChart"></canvas>
+          <div id="db-analysis-insights-box" class="bg-surface-container-lowest p-4 rounded-lg border border-outline-variant/20 mb-4">
+            <ul id="db-analysis-insights-list" class="space-y-2 text-sm text-on-surface-variant"></ul>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+            <div class="h-[240px]"><canvas id="methodChart"></canvas></div>
+            <div class="h-[240px]"><canvas id="balanceTrendChart"></canvas></div>
           </div>
         </div>
       </div>
 
-      <!-- Heatmap Panel -->
+      <!-- PANEL 4: 365-Day Activity Heatmap -->
       <div id="panel-report-heatmap" class="report-panel" style="display: none;">
-        <div class="glass-panel rounded-xl p-stack-md overflow-x-auto">
-          <h4 class="font-headline-lg text-[18px] text-on-surface mb-3">365-Day Activity Heatmap</h4>
-          <div id="heatmap-grid-container"></div>
+        <div class="glass-panel rounded-xl p-stack-md mb-stack-md">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-headline-lg text-[22px] text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary">local_fire_department</span> Expense Contribution Heatmap
+            </h3>
+            <div class="font-label-sm text-on-surface-variant">
+              Active Days: <strong id="heatmap-active-days" class="text-primary-fixed-dim">0</strong> | Total: <strong id="heatmap-total-year" class="text-secondary">₹0.00</strong>
+            </div>
+          </div>
+          <div id="heatmap-grid-container" class="overflow-x-auto pb-2"></div>
+        </div>
+        <div class="glass-panel rounded-xl p-stack-md h-[260px]">
+          <canvas id="trendChart"></canvas>
         </div>
       </div>
     </section>
 
-    <!-- Recent Activity Module with Edit & Delete Options -->
-    <section id="recent-activity-section" class="space-y-stack-md">
-      <div class="flex justify-between items-center border-b border-outline-variant/20 pb-2">
-        <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">RECENT ACTIVITY</h3>
-        <button onclick="openAllTransactionsModal()" class="font-label-sm text-label-sm text-primary-fixed hover:text-primary-fixed-dim transition-colors uppercase">VIEW ALL</button>
+    <!-- Recent Executions / Transactions Table Section -->
+    <section id="transactions-section" class="col-span-1 md:col-span-12 glass-panel rounded-xl p-stack-md overflow-hidden flex flex-col mb-stack-lg">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant/20 relative flex-wrap gap-3">
+        <h3 class="font-headline-lg text-headline-lg text-on-surface text-[24px]">Recent Transactions</h3>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input type="text" id="search-input" placeholder="Search notes or category..." class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm">
+          <select id="filter-type" class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm">
+            <option value="all">All Types</option>
+            <option value="expense">Expenses Only</option>
+            <option value="income">Income Only</option>
+          </select>
+          <select id="filter-category" class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm">
+            <option value="all">All Categories</option>
+            <option value="Food">Food & Dining</option>
+            <option value="Transportation">Transportation</option>
+            <option value="Housing">Housing & Utilities</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Health">Health & Fitness</option>
+            <option value="Education">Education</option>
+            <option value="Income">Salary / Income</option>
+            <option value="Other">Other / Misc</option>
+          </select>
+          <select id="filter-sort" class="bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="amount-desc">Highest Amount</option>
+            <option value="amount-asc">Lowest Amount</option>
+          </select>
+        </div>
+        <div class="absolute -bottom-[1px] left-0 w-8 h-[2px] bg-primary-fixed shadow-[0_0_8px_#7df4ff]"></div>
       </div>
 
-      <div id="recent-activity-list" class="space-y-stack-sm">
-        <!-- Rendered dynamically via app.js with Edit & Delete buttons -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/10">
+              <th class="py-3 px-3 font-normal">Date</th>
+              <th class="py-3 px-3 font-normal">Category</th>
+              <th class="py-3 px-3 font-normal">Description / Notes</th>
+              <th class="py-3 px-3 font-normal">Method</th>
+              <th class="py-3 px-3 font-normal text-right">Amount</th>
+              <th class="py-3 px-3 font-normal text-center admin-only">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="transactions-tbody" class="font-label-md text-label-md">
+            <!-- Dynamic items rendered via app.js -->
+          </tbody>
+        </table>
+        
+        <div id="empty-state" class="text-center py-8 text-on-surface-variant" style="display: none;">
+          <span class="material-symbols-outlined text-[48px] opacity-40">receipt_long</span>
+          <p class="mt-2 font-label-md">No transactions found matching criteria</p>
+        </div>
       </div>
     </section>
 
   </main>
 
-  <!-- Prominent FAB - Add Transaction -->
-  <div class="fixed bottom-[90px] right-margin-mobile z-40">
-    <button onclick="openTransactionModal()" class="w-14 h-14 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shadow-[0_0_20px_#00dbe9] hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer">
-      <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">add</span>
+  <!-- BottomNavBar (Mobile) -->
+  <nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-background/90 backdrop-blur-lg border-t border-primary/20 rounded-t-xl shadow-[0_-8px_20px_rgba(0,219,233,0.1)]">
+    <button id="mnav-monthly" type="button" class="flex flex-col items-center justify-center text-primary-fixed-dim p-2 cursor-pointer active" onclick="switchReportTab('monthly')">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+      <span class="font-label-sm text-label-sm mt-1">Monthly</span>
     </button>
-  </div>
-
-  <!-- Bottom Navigation Bar (Mobile) -->
-  <nav class="bg-background/90 backdrop-blur-lg text-primary-fixed font-label-sm text-label-sm fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 rounded-t-xl border-t border-primary/20 shadow-[0_-8px_20px_rgba(0,219,233,0.1)]">
-    <a id="nav-home" onclick="switchReportTab('monthly'); return false;" class="flex flex-col items-center justify-center bg-primary-container/20 text-primary-fixed-dim rounded-xl p-2 active:bg-primary/5 scale-110 duration-200 cursor-pointer" href="#">
-      <span class="material-symbols-outlined mb-1">home</span>
-      <span>Home</span>
-    </a>
-    <a id="nav-wallets" onclick="openVaultModal(); return false;" class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-primary/5 scale-110 duration-200 cursor-pointer" href="#">
-      <span class="material-symbols-outlined mb-1">account_balance_wallet</span>
-      <span>Wallets</span>
-    </a>
-    <a id="nav-trade" onclick="openTransactionModal(); return false;" class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-primary/5 scale-110 duration-200 cursor-pointer" href="#">
-      <span class="material-symbols-outlined mb-1">swap_horiz</span>
-      <span>Trade</span>
-    </a>
-    <a id="nav-activity" onclick="openAllTransactionsModal(); return false;" class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-primary/5 scale-110 duration-200 cursor-pointer" href="#">
-      <span class="material-symbols-outlined mb-1">history</span>
-      <span>Activity</span>
-    </a>
+    <button id="mnav-weekly" type="button" class="flex flex-col items-center justify-center text-on-surface-variant p-2 cursor-pointer" onclick="switchReportTab('weekly')">
+      <span class="material-symbols-outlined">bar_chart</span>
+      <span class="font-label-sm text-label-sm mt-1">Weekly</span>
+    </button>
+    <div class="relative -top-6 admin-only">
+      <button onclick="openTransactionModal()" type="button" class="w-14 h-14 rounded-full bg-primary-fixed-dim text-on-primary-fixed flex items-center justify-center shadow-[0_0_20px_rgba(0,219,233,0.4)] kinetic-border overflow-hidden cursor-pointer">
+        <span class="material-symbols-outlined relative z-10 text-[28px]">add</span>
+      </button>
+    </div>
+    <button id="mnav-database" type="button" class="flex flex-col items-center justify-center text-on-surface-variant p-2 cursor-pointer" onclick="switchReportTab('database')">
+      <span class="material-symbols-outlined">psychology</span>
+      <span class="font-label-sm text-label-sm mt-1">AI Insights</span>
+    </button>
+    <button id="mnav-heatmap" type="button" class="flex flex-col items-center justify-center text-on-surface-variant p-2 cursor-pointer" onclick="switchReportTab('heatmap')">
+      <span class="material-symbols-outlined">local_fire_department</span>
+      <span class="font-label-sm text-label-sm mt-1">Activity</span>
+    </button>
   </nav>
 
-  <!-- KEYPAD TRANSACTION ENTRY MODAL -->
+  <!-- Modal Dialog: Add / Edit Transaction -->
   <div id="transaction-modal" class="modal-backdrop">
-    <main class="w-full h-full max-w-md mx-auto relative z-10 flex flex-col h-[884px] max-h-screen bg-surface-container-lowest/95 backdrop-blur-2xl md:border-x md:border-outline-variant/20 md:shadow-2xl overflow-hidden rounded-2xl">
-      <header class="flex justify-between items-center p-margin-mobile border-b border-outline-variant/20">
-        <button onclick="closeTransactionModal()" class="text-on-surface-variant hover:text-primary-fixed transition-colors">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-        <h1 class="font-label-md text-label-md text-primary-fixed uppercase tracking-widest">New Entry</h1>
-        <div class="w-6"></div>
-      </header>
-
-      <section class="flex-1 flex flex-col justify-center items-center p-margin-mobile relative">
-        <div class="text-on-surface-variant font-label-sm text-label-sm mb-stack-sm tracking-widest uppercase">AMOUNT</div>
-        <div class="flex items-center justify-center font-display-sm text-display-sm text-primary-fixed neon-text tracking-tighter">
-          <span class="text-outline-variant mr-1">$</span>
-          <span id="amountDisplay">0.00</span>
-        </div>
-
-        <div class="mt-stack-lg w-full">
-          <div class="text-on-surface-variant font-label-sm text-label-sm mb-stack-sm tracking-widest text-center uppercase">CATEGORY</div>
-          <div class="flex justify-center gap-stack-sm flex-wrap" id="category-selector-container">
-            <button type="button" class="cat-btn flex flex-col items-center p-stack-sm rounded-lg bg-surface-container border border-outline-variant/30 hover:border-primary-fixed/50 transition-all w-20 cursor-pointer" onclick="selectCategory('Food', this)">
-              <span class="material-symbols-outlined text-secondary-fixed mb-1">restaurant</span>
-              <span class="font-label-sm text-label-sm text-on-surface-variant text-[10px]">Food</span>
-            </button>
-            <button type="button" class="cat-btn flex flex-col items-center p-stack-sm rounded-lg bg-primary-container/20 border border-primary-fixed text-primary-fixed transition-all w-20 shadow-[0_0_15px_rgba(0,219,233,0.15)] cursor-pointer" onclick="selectCategory('Fuel', this)">
-              <span class="material-symbols-outlined mb-1">local_gas_station</span>
-              <span class="font-label-sm text-label-sm text-[10px]">Fuel</span>
-            </button>
-            <button type="button" class="cat-btn flex flex-col items-center p-stack-sm rounded-lg bg-surface-container border border-outline-variant/30 hover:border-primary-fixed/50 transition-all w-20 cursor-pointer" onclick="selectCategory('Shop', this)">
-              <span class="material-symbols-outlined text-secondary mb-1">shopping_bag</span>
-              <span class="font-label-sm text-label-sm text-on-surface-variant text-[10px]">Shop</span>
-            </button>
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Transaction</h2>
+        <button class="btn-close" id="btn-close-modal" onclick="closeTransactionModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="transaction-form" onsubmit="handleTransactionFormSubmit(event)">
+        <input type="hidden" id="tx-id">
+        <div class="form-group">
+          <label>Transaction Type</label>
+          <div class="radio-toggle-group">
+            <div id="type-btn-expense" class="radio-toggle-btn active expense" onclick="setFormType('expense')">
+              <i class="fa-solid fa-circle-minus"></i> Expense
+            </div>
+            <div id="type-btn-income" class="radio-toggle-btn income" onclick="setFormType('income')">
+              <i class="fa-solid fa-circle-plus"></i> Income
+            </div>
           </div>
         </div>
-      </section>
-
-      <section class="w-full bg-surface-container/50 backdrop-blur-md border-t border-outline-variant/20 p-stack-md rounded-t-2xl pb-margin-mobile">
-        <div class="grid grid-cols-3 gap-unit mb-stack-md">
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('1')">1</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('2')">2</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('3')">3</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('4')">4</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('5')">5</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('6')">6</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('7')">7</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('8')">8</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('9')">9</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface-variant rounded-lg neon-border" onclick="appendNum('.')">.</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile text-on-surface rounded-lg neon-border" onclick="appendNum('0')">0</button>
-          <button type="button" class="keypad-btn h-16 bg-surface hover:bg-surface-bright flex items-center justify-center text-error rounded-lg neon-border" onclick="deleteNum()">
-            <span class="material-symbols-outlined">backspace</span>
-          </button>
-        </div>
-
-        <button type="button" class="w-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md uppercase py-4 rounded-lg tracking-widest hover:bg-primary shadow-[0_0_20px_rgba(0,219,233,0.3)] transition-all active:scale-[0.98] cursor-pointer" onclick="triggerSuccess()">
-          Confirm Transaction
-        </button>
-      </section>
-
-      <div id="successOverlay" class="success-overlay absolute inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center">
-        <div class="success-icon w-24 h-24 rounded-full bg-primary-container/20 border-2 border-primary-fixed flex items-center justify-center shadow-[0_0_40px_rgba(0,219,233,0.4)] mb-stack-lg">
-          <span class="material-symbols-outlined text-primary-fixed text-5xl" style="font-variation-settings: 'FILL' 1;">check</span>
-        </div>
-        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Logged Successfully</h2>
-        <p class="font-body-md text-body-md text-on-surface-variant">Transaction routed to ledger.</p>
-      </div>
-    </main>
-  </div>
-
-  <!-- EDIT TRANSACTION MODAL -->
-  <div id="edit-modal" class="modal-backdrop">
-    <div class="glass-panel p-6 rounded-xl w-full max-w-sm border-primary-fixed/40">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-label-md text-primary-fixed uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary-fixed">edit</span> Edit Transaction
-        </h3>
-        <button onclick="closeEditModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
-      </div>
-      <form onsubmit="handleEditSubmit(event)" class="space-y-4">
-        <input type="hidden" id="edit-tx-id">
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Transaction Type</label>
-          <select id="edit-tx-type" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm">
-            <option value="expense">Expense (-)</option>
-            <option value="income">Income (+)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Amount ($)</label>
-          <input type="number" step="any" min="0.01" id="edit-tx-amount" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" required>
-        </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Description / Note</label>
-          <input type="text" id="edit-tx-note" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" required>
-        </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Category</label>
-          <select id="edit-tx-category" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm">
-            <option value="Food">Food</option>
-            <option value="Fuel">Fuel</option>
-            <option value="Shop">Shop</option>
-            <option value="Transportation">Transportation</option>
-            <option value="Housing">Housing</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Health">Health</option>
-            <option value="Income">Income</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Date</label>
-          <input type="date" id="edit-tx-date" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" required>
-        </div>
-        <div class="flex justify-between items-center pt-2">
-          <button type="button" onclick="handleDeleteCurrentEditTx()" class="px-3 py-2 rounded-lg bg-error-container/40 text-error font-label-sm hover:bg-error-container flex items-center gap-1">
-            <span class="material-symbols-outlined text-sm">delete</span> Delete
-          </button>
-          <div class="flex gap-2">
-            <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
-            <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Save</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="tx-amount">Amount (₹)</label>
+            <input type="number" step="any" min="0.01" id="tx-amount" class="form-control" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label for="tx-date">Date</label>
+            <input type="date" id="tx-date" class="form-control" required>
           </div>
         </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ALL TRANSACTIONS LIST MODAL -->
-  <div id="all-transactions-modal" class="modal-backdrop">
-    <div class="glass-panel p-6 rounded-xl w-full max-w-md max-h-[85vh] flex flex-col border-primary-fixed/40">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-label-md text-primary-fixed uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary-fixed">history</span> All Transactions
-        </h3>
-        <button onclick="closeAllTransactionsModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
-      </div>
-      <div class="mb-3">
-        <input type="text" id="all-tx-search" oninput="renderAllTransactionsList()" placeholder="Search transactions..." class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2 text-sm">
-      </div>
-      <div id="all-tx-list-container" class="flex-1 overflow-y-auto space-y-2 pr-1">
-        <!-- Rendered dynamically -->
-      </div>
-      <div class="pt-3 border-t border-outline-variant/20 flex justify-end">
-        <button type="button" onclick="closeAllTransactionsModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- CUSTOM SEND MODAL -->
-  <div id="send-modal" class="modal-backdrop">
-    <div class="glass-panel p-6 rounded-xl w-full max-w-sm border-primary-fixed/40">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-label-md text-primary-fixed uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary-fixed">send</span> Send Money
-        </h3>
-        <button onclick="closeSendModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
-      </div>
-      <form onsubmit="handleSendSubmit(event)" class="space-y-4">
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Recipient Name / Wallet Address</label>
-          <input type="text" id="send-recipient" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="e.g. Alex, 0x71C... or UPI" required>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="tx-category">Category</label>
+            <select id="tx-category" class="form-control" required>
+              <option value="Food">Food & Dining</option>
+              <option value="Transportation">Transportation</option>
+              <option value="Housing">Housing & Utilities</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Health">Health & Fitness</option>
+              <option value="Education">Education</option>
+              <option value="Income">Salary / Income</option>
+              <option value="Other">Other / Misc</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tx-method">Payment Method</label>
+            <select id="tx-method" class="form-control">
+              <option value="Credit Card">Credit Card</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="Cash">Cash</option>
+              <option value="Bank Transfer">Bank Transfer / UPI</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Amount ($)</label>
-          <input type="number" step="any" min="0.01" id="send-amount" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" placeholder="0.00" required>
+        <div class="form-group">
+          <label for="tx-note">Note / Description</label>
+          <input type="text" id="tx-note" class="form-control" placeholder="e.g. Grocery shopping" required>
         </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Note / Category</label>
-          <input type="text" id="send-note" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="e.g. Dinner share / Payment">
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeSendModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Confirm Send</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-modal" onclick="closeTransactionModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Transaction</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- CUSTOM RECEIVE MODAL -->
-  <div id="receive-modal" class="modal-backdrop">
-    <div class="glass-panel p-6 rounded-xl w-full max-w-sm border-secondary-fixed/40">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-label-md text-secondary-fixed uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-secondary-fixed">download</span> Receive Money
-        </h3>
-        <button onclick="closeReceiveModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
+  <!-- Modal Dialog: Edit Monthly Savings -->
+  <div id="savings-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Set Monthly Savings Target</h2>
+        <button class="btn-close" id="btn-close-savings-modal" onclick="closeSavingsModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <form onsubmit="handleReceiveSubmit(event)" class="space-y-4">
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Sender Name / Source</label>
-          <input type="text" id="receive-sender" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="e.g. Appa, Salary, Friend" required>
+      <form id="savings-form" onsubmit="handleSavingsFormSubmit(event)">
+        <div class="form-group">
+          <label for="monthly-savings-input"><i class="fa-solid fa-piggy-bank"></i> Monthly Savings Amount (₹)</label>
+          <input type="number" step="any" min="0" id="monthly-savings-input" class="form-control" placeholder="e.g. 10000" required>
         </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Amount ($)</label>
-          <input type="number" step="any" min="0.01" id="receive-amount" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" placeholder="0.00" required>
-        </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Note</label>
-          <input type="text" id="receive-note" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="e.g. Received transfer">
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeReceiveModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-lg bg-secondary-container text-on-primary-fixed font-label-sm shadow-[0_0_10px_#d05bff]">Confirm Receive</button>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          This monthly target is saved securely in your profile.
+        </p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-savings-modal" onclick="closeSavingsModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Target</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- PROFILE & SETTINGS MODAL -->
-  <div id="profile-modal" class="modal-backdrop">
-    <div class="glass-panel p-6 rounded-xl w-full max-w-sm border-primary-fixed/40">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-label-md text-primary-fixed uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary-fixed">person</span> Profile & Wallet Settings
-        </h3>
-        <button onclick="closeProfileModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
-      </div>
-      <form onsubmit="handleProfileSubmit(event)" class="space-y-4">
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Your Name</label>
-          <input type="text" id="profile-name-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" placeholder="Sivakumar" required>
-        </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Starting Base Balance ($)</label>
-          <input type="number" step="any" id="profile-balance-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm font-semibold" placeholder="124942.80" required>
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeProfileModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Save Settings</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal Dialog: GitHub Gist Config -->
+  <!-- Modal Dialog: GitHub Gist Database Config -->
   <div id="vault-modal" class="modal-backdrop">
-    <div class="glass-panel p-6 rounded-xl w-full max-w-sm border-primary-fixed/40">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-label-md text-primary-fixed uppercase tracking-wider">GitHub Cloud Sync</h3>
-        <button onclick="closeVaultModal()" class="text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2><i class="fa-brands fa-github"></i> GitHub Gist Cloud Database</h2>
+        <button class="btn-close" onclick="closeVaultModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <form id="vault-form" onsubmit="handleVaultFormSubmit(event)" class="space-y-4">
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Gist ID</label>
-          <input type="text" id="gist-id-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="Gist ID...">
+      <form id="vault-form" onsubmit="handleVaultFormSubmit(event)">
+        <div class="form-group">
+          <label for="gist-id-input"><i class="fa-solid fa-code-fork"></i> GitHub Gist ID</label>
+          <input type="text" id="gist-id-input" class="form-control" placeholder="e.g. 7f8a9b0c1d2e3f4a5b6c" required>
         </div>
-        <div>
-          <label class="block font-label-sm text-on-surface-variant mb-1">Personal Token (PAT)</label>
-          <input type="password" id="gist-token-input" class="w-full bg-surface-container text-on-surface border border-outline-variant/40 rounded-lg p-2.5 text-sm" placeholder="ghp_...">
+        <div class="form-group">
+          <label for="gist-token-input"><i class="fa-solid fa-key"></i> GitHub Access Token (PAT)</label>
+          <input type="password" id="gist-token-input" class="form-control" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
         </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeVaultModal()" class="px-4 py-2 rounded-lg bg-surface-variant text-on-surface font-label-sm">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm shadow-[0_0_10px_#00dbe9]">Save & Sync</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeVaultModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-arrows-rotate"></i> Connect & Sync</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Dialog: Admin PIN Authentication -->
+  <div id="admin-modal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-user-shield"></i> Admin Access</h2>
+        <button class="btn-close" onclick="closeAdminModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="admin-form" onsubmit="handleAdminFormSubmit(event)">
+        <div class="form-group">
+          <label for="admin-pin-input"><i class="fa-solid fa-key"></i> Enter Admin PIN</label>
+          <input type="password" id="admin-pin-input" class="form-control" placeholder="Enter PIN (7871)" required autocomplete="off">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-unlock"></i> Unlock Admin</button>
         </div>
       </form>
     </div>
@@ -598,6 +747,6 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

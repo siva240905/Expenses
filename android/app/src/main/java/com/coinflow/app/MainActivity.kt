@@ -1,4 +1,4 @@
-package com.expenseflow.app
+package com.coinflow.app
 
 import android.annotation.SuppressLint
 import android.os.Bundle

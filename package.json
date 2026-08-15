@@ -1,13 +1,19 @@
 {
-  "name": "expenses-backend-server",
+  "name": "coin-flow",
   "version": "1.0.0",
-  "description": "Backend database server for Personal Expense Tracker",
+  "description": "Coin Flow - Personal Finance Tracker & Expense Manager",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "sync-android": "node -e \"const fs = require('fs'); const path = require('path'); ['index.html', 'app.js', 'styles.css', 'db.json', 'manifest.json', 'sw.js'].forEach(f => fs.copyFileSync(f, path.join('android/app/src/main/assets', f))); console.log('Synced web assets to android app assets directory!');\""
+    "sync-android": "node -e \"const fs = require('fs'); const path = require('path'); ['index.html', 'app.js', 'styles.css', 'db.json', 'manifest.json', 'sw.js', 'icon.png', 'favicon.png', 'icon-192.png', 'icon-512.png'].forEach(f => { if(fs.existsSync(f)) fs.copyFileSync(f, path.join('android/app/src/main/assets', f)); }); console.log('Synced web assets to android app assets directory!');\""
   },
-  "keywords": ["expense-tracker", "backend", "database"],
+  "keywords": [
+    "coin-flow",
+    "expense-tracker",
+    "finance",
+    "pwa",
+    "android"
+  ],
   "author": "",
   "license": "ISC"
 }

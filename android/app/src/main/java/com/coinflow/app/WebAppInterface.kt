@@ -1,4 +1,4 @@
-package com.expenseflow.app
+package com.coinflow.app
 
 import android.content.Context
 import android.os.Build

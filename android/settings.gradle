@@ -1,2 +1,2 @@
-rootProject.name = "ExpenseFlow"
+rootProject.name = "CoinFlow"
 include ':app'

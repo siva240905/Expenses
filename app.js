@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
 if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then((reg) => {
-      console.log('ExpenseFlow PWA ServiceWorker active:', reg.scope);
+      console.log('Coin Flow PWA ServiceWorker active:', reg.scope);
     }).catch((err) => {
       console.warn('ServiceWorker registration error:', err);
     });
@@ -83,7 +83,7 @@ function installPWAApp() {
   deferredPWAPrompt.prompt();
   deferredPWAPrompt.userChoice.then((choice) => {
     if (choice.outcome === 'accepted') {
-      showToast('ExpenseFlow Mobile App installed to homescreen!', 'success');
+      showToast('Coin Flow Mobile App installed to homescreen!', 'success');
     }
     deferredPWAPrompt = null;
     dismissPWABanner();

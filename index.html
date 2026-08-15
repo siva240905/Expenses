@@ -3,9 +3,11 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
-  <meta name="description" content="Personal Expense Tracker - Expenses Spender Dashboard">
+  <meta name="description" content="Coin Flow - Personal Finance Tracker & Expense Manager">
   <meta name="theme-color" content="#0A0A0F">
-  <title>Expenses Spender - Finance Dashboard</title>
+  <title>Coin Flow - Personal Finance Tracker</title>
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 
   <!-- Tailwind CSS CDN with plugins -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -178,12 +180,10 @@
   <!-- SideNavBar (Desktop) -->
   <nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest/60 backdrop-blur-2xl border-r border-outline-variant/20 p-stack-md z-40 transition-all duration-150 ease-in-out">
     <div class="mb-stack-lg flex items-center gap-stack-sm">
-      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-fixed-dim to-secondary-container flex items-center justify-center shadow-[0_0_15px_rgba(0,219,233,0.3)]">
-        <span class="material-symbols-outlined text-on-primary-fixed" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
-      </div>
+      <img src="icon.png" alt="Coin Flow Logo" class="w-10 h-10 rounded-lg object-contain bg-white p-1 shadow-[0_0_15px_rgba(0,219,233,0.3)]"/>
       <div>
-        <h1 class="font-headline-lg text-headline-lg text-primary-fixed-dim tracking-tighter leading-none">EXPENSES</h1>
-        <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest opacity-70">Expenses Spender</span>
+        <h1 class="font-headline-lg text-headline-lg text-primary-fixed-dim tracking-tighter leading-none">COIN FLOW</h1>
+        <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest opacity-70">Personal Finance</span>
       </div>
     </div>
 
@@ -249,10 +249,8 @@
   <!-- TopNavBar (Mobile Header) -->
   <header class="md:hidden flex justify-between items-center px-margin-mobile py-4 w-full sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-outline-variant/20">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-fixed-dim to-secondary-container flex items-center justify-center">
-        <span class="material-symbols-outlined text-on-primary-fixed text-[16px]" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
-      </div>
-      <h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold tracking-tighter text-primary-fixed">EXPENSES SPENDER</h1>
+      <img src="icon.png" alt="Coin Flow Logo" class="w-8 h-8 rounded-lg object-contain bg-white p-0.5"/>
+      <h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold tracking-tighter text-primary-fixed">COIN FLOW</h1>
     </div>
     <div class="flex items-center gap-3">
       <button class="text-on-surface-variant hover:text-primary-fixed transition-colors" onclick="syncFromCloudDatabase()" title="Sync Gist Data">
@@ -289,11 +287,9 @@
     <div id="pwa-install-banner" class="glass-panel rounded-xl p-stack-md mb-stack-md border-primary-fixed-dim/30" style="display: none;">
       <div class="flex justify-between items-center flex-wrap gap-3">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-primary-fixed-dim/20 text-primary-fixed-dim flex items-center justify-center">
-            <span class="material-symbols-outlined">smartphone</span>
-          </div>
+          <img src="icon.png" alt="Coin Flow" class="w-10 h-10 rounded-lg object-contain bg-white p-1"/>
           <div>
-            <strong class="font-label-md text-on-surface block">Install Lumina App</strong>
+            <strong class="font-label-md text-on-surface block">Install Coin Flow App</strong>
             <span class="font-label-sm text-on-surface-variant">Add to homescreen for fast 1-tap personal finance tracking</span>
           </div>
         </div>

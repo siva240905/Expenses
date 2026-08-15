@@ -1,10 +1,10 @@
-# 📱 Expenses Spender - Personal Finance Tracker
+# 🪙 Coin Flow - Personal Finance Tracker
 
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Live--App-00DDF7?style=for-the-badge&logo=vercel&logoColor=white)](https://expenses-mauve-xi.vercel.app)
 [![GitHub License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
 [![PWA Ready](https://img.shields.io/badge/PWA-1--Tap--Install-00FF9D?style=for-the-badge&logo=pwa&logoColor=white)](https://expenses-mauve-xi.vercel.app)
 
-> **Expenses Spender** is a high-precision, neon-cyber personal expense tracker designed for web and mobile. Built with kinetic UI glassmorphism, instant PWA home-screen installation, and cloud database synchronization.
+> **Coin Flow** is a high-precision, neon-cyber personal expense tracker designed for web and mobile. Built with kinetic UI glassmorphism, instant PWA home-screen installation, and cloud database synchronization.
 
 ---
 
@@ -17,7 +17,7 @@ Open the live web application on any device:
 ---
 
 ### Option 2: 📲 Install Mobile App (PWA - Recommended)
-You can install **Expenses Spender** directly as a native-feeling app on Android, iOS, Windows, or Mac without needing the Google Play Store:
+You can install **Coin Flow** directly as a native-feeling app on Android, iOS, Windows, or Mac without needing the Google Play Store:
 
 #### On Android (Google Chrome)
 1. Open [**`https://expenses-mauve-xi.vercel.app`**](https://expenses-mauve-xi.vercel.app) in Google Chrome.
@@ -41,7 +41,7 @@ GitHub Actions automatically builds and publishes compiled `.apk` files on every
 ### Option 4: 🤖 Android Studio Project (`/android`)
 The repository includes a complete native Android WebKit wrapper project:
 - **Location**: [`/android`](android)
-- **Source Code**: [`android/app/src/main/java/com/expenseflow/app/MainActivity.kt`](android/app/src/main/java/com/expenseflow/app/MainActivity.kt)
+- **Source Code**: [`android/app/src/main/java/com/coinflow/app/MainActivity.kt`](android/app/src/main/java/com/coinflow/app/MainActivity.kt)
 - **Assets**: [`android/app/src/main/assets/`](android/app/src/main/assets/)
 
 To build an APK manually in Android Studio:

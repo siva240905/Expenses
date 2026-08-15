@@ -1,17 +1,23 @@
 {
-  "name": "ExpenseFlow - Personal Expense Manager",
-  "short_name": "Expenses",
-  "description": "Smart Personal Finance Tracker & Expense Manager with AI Database Insights",
+  "name": "Coin Flow - Personal Expense Manager",
+  "short_name": "Coin Flow",
+  "description": "Coin Flow - Personal Finance Tracker & Expense Manager with Cloud Database Insights",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#090d16",
-  "theme_color": "#6366f1",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00dbe9",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='128' fill='%236366f1'/><path d='M384 192H128c-17.7 0-32 14.3-32 32v192c0 17.7 14.3 32 32 32h256c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zm-64 128c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32z' fill='white'/></svg>",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
