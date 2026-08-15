@@ -115,6 +115,20 @@ select option:checked, select option:hover {
   pointer-events: auto !important;
 }
 
+/* Success Overlay Fix - Must be hidden by default */
+.success-overlay {
+  display: none !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.success-overlay.active {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 .modal-box {
   background: #0f131f !important;
   border: 1px solid rgba(0, 219, 233, 0.35) !important;

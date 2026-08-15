@@ -5,7 +5,7 @@
 // --- Application State ---
 let state = {
   userName: 'Sivakumar',
-  baseBalance: 124942.80,
+  baseBalance: 0,
   transactions: [],
   monthlySavings: 1200,
   gistId: '',
@@ -76,7 +76,7 @@ function loadFromLocalStorage() {
     if (profileRaw) {
       const parsedProfile = JSON.parse(profileRaw);
       if (parsedProfile.userName) state.userName = parsedProfile.userName;
-      if (typeof parsedProfile.baseBalance === 'number' && !isNaN(parsedProfile.baseBalance) && parsedProfile.baseBalance !== 0) {
+      if (typeof parsedProfile.baseBalance === 'number' && !isNaN(parsedProfile.baseBalance)) {
         state.baseBalance = parsedProfile.baseBalance;
       }
     }
@@ -92,7 +92,7 @@ function loadFromLocalStorage() {
       const parsed = JSON.parse(rawData);
       state.transactions = parsed.transactions || [];
       state.monthlySavings = typeof parsed.monthlySavings !== 'undefined' ? parsed.monthlySavings : 1200;
-      if (typeof parsed.baseBalance === 'number' && !isNaN(parsed.baseBalance) && parsed.baseBalance !== 0) {
+      if (typeof parsed.baseBalance === 'number' && !isNaN(parsed.baseBalance)) {
         state.baseBalance = parsed.baseBalance;
       }
     } else {
@@ -190,7 +190,7 @@ async function syncToCloudDatabase() {
 // --- Seed Initial Data ---
 function seedDemoData(notify = true) {
   state.userName = 'Sivakumar';
-  state.baseBalance = 124942.80;
+  state.baseBalance = 0;
   state.monthlySavings = 1200;
   state.transactions = [
     { id: 'tx-1', type: 'income', amount: 500.00, date: new Date().toISOString().split('T')[0], category: 'Income', method: 'Bank Transfer', note: 'Received from Appa' },
@@ -328,7 +328,7 @@ function triggerSuccess() {
       closeTransactionModal();
       renderApp();
       showToast(`Logged ₹${amountVal.toFixed(2)} (${selectedKeypadCategory})!`, 'success');
-    }, 700);
+    }, 600);
   } else {
     currentKeypadAmount = "0";
     updateDisplay();
@@ -583,11 +583,9 @@ function openSavingsModal() {
   openProfileModal();
 }
 
-// --- Dynamic Balance Calculation (Indian Rupee Symbol) ---
+// --- Dynamic Balance Calculation (Starts with 0 + Net Transactions) ---
 function calculateMetrics() {
-  let base = (typeof state.baseBalance === 'number' && !isNaN(state.baseBalance) && state.baseBalance !== 0)
-    ? state.baseBalance
-    : 124942.80;
+  let base = (typeof state.baseBalance === 'number' && !isNaN(state.baseBalance)) ? state.baseBalance : 0;
 
   let totalIncome = 0;
   let totalExpense = 0;
