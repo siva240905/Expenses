@@ -150,113 +150,174 @@ function initCloudDatabaseSync() {
   }
 }
 
-async function syncFromCloudDatabase() {
-  if (!state.gistId) {
-    updateSyncPillStatus('local');
-    return;
-  }
+async function syncToGitHubGist(manual = false) {
   try {
     updateSyncPillStatus('syncing');
-    const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (state.gistToken) {
-      headers['Authorization'] = `token ${state.gistToken}`;
-    }
-
-    const res = await fetch(`https://api.github.com/gists/${state.gistId}`, {
-      method: 'GET',
-      headers: headers
-    });
-
-    if (res.ok) {
-      const gistData = await res.json();
-      const files = gistData.files;
-      const fileKey = files['expenses.json'] ? 'expenses.json' : Object.keys(files)[0];
-
-      if (fileKey && files[fileKey]) {
-        const content = JSON.parse(files[fileKey].content);
-        let changed = false;
-        if (Array.isArray(content.transactions)) {
-          state.transactions = content.transactions;
-          changed = true;
-        }
-        if (typeof content.monthlySavings !== 'undefined') {
-          state.monthlySavings = content.monthlySavings;
-          changed = true;
-        }
-        if (changed) {
-          saveToLocalStorage(false);
-          renderApp();
-        }
-        updateSyncPillStatus('online');
-      }
-    } else {
-      updateSyncPillStatus('offline');
-    }
-  } catch (err) {
-    console.warn('GitHub Gist fetch error:', err);
-    updateSyncPillStatus('offline');
-  }
-}
-
-async function syncToCloudDatabase() {
-  if (!state.gistId || !state.gistToken) {
-    updateSyncPillStatus('local');
-    return;
-  }
-  try {
-    updateSyncPillStatus('syncing');
+    
     const payload = {
-      transactions: state.transactions,
-      monthlySavings: state.monthlySavings,
+      transactions: state.transactions || [],
+      monthlySavings: state.monthlySavings || 0,
       updatedAt: new Date().toISOString()
     };
 
-    const res = await fetch(`https://api.github.com/gists/${state.gistId}`, {
-      method: 'PATCH',
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'Authorization': `token ${state.gistToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        files: {
-          'expenses.json': {
-            content: JSON.stringify(payload, null, 2)
-          }
-        }
-      })
-    });
+    const filesContent = {
+      'data.json': { content: JSON.stringify(payload, null, 2) },
+      'expenses.json': { content: JSON.stringify(payload, null, 2) }
+    };
+
+    // Prepare headers and endpoint
+    let url = state.gistId 
+      ? `https://api.github.com/gists/${state.gistId}`
+      : `https://api.github.com/gists`;
+    let method = state.gistId ? 'PATCH' : 'POST';
+
+    // If no direct token, check if we can use server proxy
+    let headers = {
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    };
+
+    if (state.gistToken) {
+      headers['Authorization'] = state.gistToken.startsWith('Bearer ') || state.gistToken.startsWith('token ')
+        ? state.gistToken
+        : `token ${state.gistToken}`;
+    }
+
+    const bodyData = method === 'POST' 
+      ? JSON.stringify({ description: 'Coin Flow Expense Data Backup', public: false, files: filesContent })
+      : JSON.stringify({ files: filesContent });
+
+    let res = await fetch(url, { method, headers, body: bodyData });
+
+    // Fallback to server proxy if direct fetch fails without token
+    if (!res.ok && !state.gistToken) {
+      const proxyUrl = state.gistId ? `/api/gist-proxy?gistId=${state.gistId}` : `/api/gist-proxy`;
+      res = await fetch(proxyUrl, { method, headers: { 'Content-Type': 'application/json' }, body: bodyData });
+    }
 
     if (res.ok) {
-      updateSyncPillStatus('online');
+      const data = await res.json();
+      if (!state.gistId && data.id) {
+        state.gistId = data.id;
+        localStorage.setItem(GIST_ID_STORAGE, state.gistId);
+        const inputElem = document.getElementById('gist-id-input');
+        if (inputElem) inputElem.value = state.gistId;
+      }
+      updateSyncPillStatus('synced');
+      if (manual) showToast('Synced data to GitHub Gist successfully!', 'success');
+      return true;
     } else {
-      updateSyncPillStatus('offline');
+      updateSyncPillStatus('failed');
+      if (manual) showToast('Failed to sync with GitHub Gist. Local data is safe.', 'error');
+      return false;
     }
   } catch (err) {
-    console.warn('GitHub Gist push error:', err);
-    updateSyncPillStatus('offline');
+    console.warn('Gist Sync error:', err);
+    updateSyncPillStatus('failed');
+    if (manual) showToast('Network/Sync error. Local data remains safe.', 'error');
+    return false;
   }
+}
+
+async function restoreFromGist(manual = false) {
+  if (!state.gistId) {
+    updateSyncPillStatus('unconfigured');
+    if (manual) showToast('Please enter a Gist ID or sync first.', 'warning');
+    return false;
+  }
+
+  try {
+    updateSyncPillStatus('syncing');
+
+    let headers = { 'Accept': 'application/vnd.github.v3+json' };
+    if (state.gistToken) {
+      headers['Authorization'] = state.gistToken.startsWith('Bearer ') || state.gistToken.startsWith('token ')
+        ? state.gistToken
+        : `token ${state.gistToken}`;
+    }
+
+    let res = await fetch(`https://api.github.com/gists/${state.gistId}`, { method: 'GET', headers });
+    
+    if (!res.ok) {
+      res = await fetch(`/api/gist-proxy?gistId=${state.gistId}`, { method: 'GET' });
+    }
+
+    if (res.ok) {
+      const gistData = await res.json();
+      const files = gistData.files || {};
+      const targetFile = files['data.json'] || files['expenses.json'] || files[Object.keys(files)[0]];
+
+      if (targetFile && targetFile.content) {
+        const remoteContent = JSON.parse(targetFile.content);
+
+        // Deduplicate & merge transactions using unique transaction IDs
+        const txMap = new Map();
+        
+        // 1. Keep local transactions
+        (state.transactions || []).forEach(tx => {
+          if (tx && tx.id) txMap.set(tx.id, tx);
+        });
+
+        // 2. Merge remote transactions (remote takes precedence or adds missing)
+        if (Array.isArray(remoteContent.transactions)) {
+          remoteContent.transactions.forEach(tx => {
+            if (tx && tx.id) txMap.set(tx.id, tx);
+          });
+        }
+
+        state.transactions = Array.from(txMap.values());
+        state.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        if (typeof remoteContent.monthlySavings !== 'undefined') {
+          state.monthlySavings = remoteContent.monthlySavings;
+        }
+
+        saveToLocalStorage(true);
+        renderApp();
+        updateSyncPillStatus('synced');
+        if (manual) showToast('Successfully restored and merged Gist data!', 'success');
+        return true;
+      }
+    }
+
+    updateSyncPillStatus('failed');
+    if (manual) showToast('Could not fetch valid Gist backup file.', 'error');
+    return false;
+  } catch (err) {
+    console.warn('Gist Restore error:', err);
+    updateSyncPillStatus('failed');
+    if (manual) showToast('Restore failed. Local data remains intact.', 'error');
+    return false;
+  }
+}
+
+async function syncFromCloudDatabase() {
+  return await restoreFromGist(false);
+}
+
+async function syncToCloudDatabase() {
+  return await syncToGitHubGist(false);
 }
 
 function updateSyncPillStatus(status) {
   const pill = document.getElementById('sync-status-pill');
   if (!pill) return;
   
-  if (status === 'online') {
+  if (status === 'synced' || status === 'online') {
     pill.style.color = '#10b981';
-    pill.innerHTML = `<i class="fa-brands fa-github"></i> Gist: Active`;
+    pill.innerHTML = `<i class="fa-solid fa-circle-check"></i> Synced`;
   } else if (status === 'syncing') {
     pill.style.color = '#3b82f6';
     pill.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> Syncing...`;
   } else if (status === 'local') {
     pill.style.color = '#10b981';
-    pill.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Local DB: Active`;
+    pill.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Local DB`;
   } else if (status === 'unconfigured') {
     pill.style.color = '#f59e0b';
-    pill.innerHTML = `<i class="fa-brands fa-github"></i> Sync: Setup Gist`;
+    pill.innerHTML = `<i class="fa-brands fa-github"></i> Setup Gist`;
   } else {
     pill.style.color = '#ef4444';
-    pill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Gist: Offline`;
+    pill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Sync Failed`;
   }
 }
 
@@ -1880,3 +1941,12 @@ function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
+
+// Global Window Exports for Gist Sync & Restore
+window.syncToGitHubGist = syncToGitHubGist;
+window.restoreFromGist = restoreFromGist;
+window.syncFromCloudDatabase = syncFromCloudDatabase;
+window.syncToCloudDatabase = syncToCloudDatabase;
+window.openVaultModal = openVaultModal;
+window.closeVaultModal = closeVaultModal;
+window.handleVaultFormSubmit = handleVaultFormSubmit;

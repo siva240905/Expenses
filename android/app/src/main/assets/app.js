@@ -1,100 +1,117 @@
 /* ==========================================================================
-   Coin Flow - Application Logic & State Engine
+   Personal Expense Tracker - Application Logic
    ========================================================================== */
 
 // --- Application State ---
 let state = {
-  userName: 'Sivakumar',
-  baseBalance: 0,
   transactions: [],
-  monthlySavings: 1200,
+  monthlySavings: 0,
   gistId: '',
   gistToken: '',
-  isAdminLoggedIn: true,
+  isAdminLoggedIn: false,
   adminPin: '7871',
-  currentFormType: 'expense'
+  currentFormType: 'expense',
+  editingTxId: null
 };
 
 // --- Storage Keys ---
 const STORAGE_KEY = 'smart_expense_tracker_data_v1';
-const USER_PROFILE_KEY = 'lumina_user_profile_v1';
 const GIST_ID_STORAGE = 'smart_expense_tracker_gist_id';
 const GIST_TOKEN_STORAGE = 'smart_expense_tracker_gist_token';
+const ADMIN_SESSION_STORAGE = 'smart_expense_tracker_admin_session';
 
 let cloudSyncInterval = null;
 
-// --- Keypad & Editing State ---
-let currentKeypadAmount = "0";
-let selectedKeypadCategory = "Fuel";
-let currentEditingTxId = null;
-
-// --- Category Visual Mapping ---
+// --- Category Configuration & Visual Mapping (Lumina Neon Palette) ---
 const CATEGORY_MAP = {
-  Food: { icon: 'restaurant', color: '#ffb700', bg: 'rgba(255, 183, 0, 0.18)' },
-  Fuel: { icon: 'local_gas_station', color: '#00dbe9', bg: 'rgba(0, 219, 233, 0.18)' },
-  Transportation: { icon: 'local_gas_station', color: '#00dbe9', bg: 'rgba(0, 219, 233, 0.18)' },
-  Housing: { icon: 'home', color: '#9d4edd', bg: 'rgba(157, 78, 221, 0.18)' },
-  Shop: { icon: 'shopping_bag', color: '#ecb1ff', bg: 'rgba(208, 91, 255, 0.18)' },
-  Shopping: { icon: 'shopping_bag', color: '#ecb1ff', bg: 'rgba(208, 91, 255, 0.18)' },
-  Entertainment: { icon: 'sports_esports', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.18)' },
-  Health: { icon: 'medical_services', color: '#00ff9d', bg: 'rgba(0, 255, 157, 0.18)' },
-  Education: { icon: 'school', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.18)' },
-  Income: { icon: 'payments', color: '#00ff9d', bg: 'rgba(0, 255, 157, 0.18)' },
-  Other: { icon: 'more_horiz', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.18)' }
+  Food: { icon: 'fa-utensils', color: '#ffb700', bg: 'rgba(255, 183, 0, 0.18)' },
+  Transportation: { icon: 'fa-car', color: '#00f0ff', bg: 'rgba(0, 240, 255, 0.18)' },
+  Housing: { icon: 'fa-house-chimney', color: '#9d4edd', bg: 'rgba(157, 78, 221, 0.18)' },
+  Shopping: { icon: 'fa-bag-shopping', color: '#ff007f', bg: 'rgba(255, 0, 127, 0.18)' },
+  Entertainment: { icon: 'fa-gamepad', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.18)' },
+  Health: { icon: 'fa-heart-pulse', color: '#00ff9d', bg: 'rgba(0, 255, 157, 0.18)' },
+  Education: { icon: 'fa-graduation-cap', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.18)' },
+  Income: { icon: 'fa-money-bill-trend-up', color: '#00ff9d', bg: 'rgba(0, 255, 157, 0.18)' },
+  Other: { icon: 'fa-ellipsis', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.18)' }
 };
 
 // --- Chart Instances ---
 let categoryChartInstance = null;
+let trendChartInstance = null;
 let monthlyExpenseChartInstance = null;
 let weeklyExpenseChartInstance = null;
+let weeklyCategoryChartInstance = null;
 let methodChartInstance = null;
+let balanceTrendChartInstance = null;
 let activeReportTab = 'monthly';
+let deferredPWAPrompt = null;
 
-// --- Initialize App ---
+// --- Initialize App & Service Worker ---
 document.addEventListener('DOMContentLoaded', () => {
   loadFromLocalStorage();
   initCloudDatabaseSync();
+
+  // Set default date input to today
+  document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+
+  initEventListeners();
+  updateAdminUiState();
   renderApp();
 });
 
-// --- Dynamic Time-Based Greeting ---
-function getGreetingByTime() {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) {
-    return 'Good Morning,';
-  } else if (hour >= 12 && hour < 17) {
-    return 'Good Afternoon,';
-  } else {
-    return 'Good Evening,';
-  }
+// --- PWA Service Worker Registration ---
+if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      console.log('Coin Flow PWA ServiceWorker active:', reg.scope);
+    }).catch((err) => {
+      console.warn('ServiceWorker registration error:', err);
+    });
+  });
+}
+
+// --- PWA Mobile Install Banner Handlers ---
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPWAPrompt = e;
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'block';
+});
+
+function installPWAApp() {
+  if (!deferredPWAPrompt) return;
+  deferredPWAPrompt.prompt();
+  deferredPWAPrompt.userChoice.then((choice) => {
+    if (choice.outcome === 'accepted') {
+      showToast('Coin Flow Mobile App installed to homescreen!', 'success');
+    }
+    deferredPWAPrompt = null;
+    dismissPWABanner();
+  });
+}
+
+function dismissPWABanner() {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 // --- LocalStorage Operations ---
 function loadFromLocalStorage() {
   try {
-    const profileRaw = localStorage.getItem(USER_PROFILE_KEY);
-    if (profileRaw) {
-      const parsedProfile = JSON.parse(profileRaw);
-      if (parsedProfile.userName) state.userName = parsedProfile.userName;
-      if (typeof parsedProfile.baseBalance === 'number' && !isNaN(parsedProfile.baseBalance)) {
-        state.baseBalance = parsedProfile.baseBalance;
-      }
-    }
-
     const savedGistId = localStorage.getItem(GIST_ID_STORAGE);
     if (savedGistId) state.gistId = savedGistId;
 
     const savedGistToken = localStorage.getItem(GIST_TOKEN_STORAGE);
     if (savedGistToken) state.gistToken = savedGistToken;
 
+    const savedAdminSession = sessionStorage.getItem(ADMIN_SESSION_STORAGE);
+    if (savedAdminSession === 'true') state.isAdminLoggedIn = true;
+
     const rawData = localStorage.getItem(STORAGE_KEY);
     if (rawData) {
       const parsed = JSON.parse(rawData);
       state.transactions = parsed.transactions || [];
       state.monthlySavings = typeof parsed.monthlySavings !== 'undefined' ? parsed.monthlySavings : 1200;
-      if (typeof parsed.baseBalance === 'number' && !isNaN(parsed.baseBalance)) {
-        state.baseBalance = parsed.baseBalance;
-      }
     } else {
       seedDemoData(false);
     }
@@ -106,20 +123,12 @@ function loadFromLocalStorage() {
 
 function saveToLocalStorage(triggerCloudSync = true) {
   try {
-    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify({
-      userName: state.userName,
-      baseBalance: state.baseBalance
-    }));
-
     const payload = {
-      userName: state.userName,
-      baseBalance: state.baseBalance,
       transactions: state.transactions,
       monthlySavings: state.monthlySavings,
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-
     if (state.gistId) localStorage.setItem(GIST_ID_STORAGE, state.gistId);
     if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
     
@@ -127,803 +136,1817 @@ function saveToLocalStorage(triggerCloudSync = true) {
       syncToCloudDatabase();
     }
   } catch (err) {
-    showToast('Failed to save to local storage', 'danger');
+    showToast('Failed to auto-save to browser storage!', 'danger');
   }
 }
 
-// --- Cloud Synchronization Engine ---
+// --- Database & Cloud Synchronization Engine ---
 function initCloudDatabaseSync() {
   syncFromCloudDatabase();
+
   window.addEventListener('focus', syncFromCloudDatabase);
   if (!cloudSyncInterval) {
     cloudSyncInterval = setInterval(syncFromCloudDatabase, 30000);
   }
 }
 
-async function syncFromCloudDatabase() {
-  if (!state.gistId) return;
+async function syncToGitHubGist(manual = false) {
   try {
-    const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (state.gistToken) headers['Authorization'] = `token ${state.gistToken}`;
+    updateSyncPillStatus('syncing');
+    
+    const payload = {
+      transactions: state.transactions || [],
+      monthlySavings: state.monthlySavings || 0,
+      updatedAt: new Date().toISOString()
+    };
 
-    const res = await fetch(`https://api.github.com/gists/${state.gistId}`, { method: 'GET', headers });
+    const filesContent = {
+      'data.json': { content: JSON.stringify(payload, null, 2) },
+      'expenses.json': { content: JSON.stringify(payload, null, 2) }
+    };
+
+    // Prepare headers and endpoint
+    let url = state.gistId 
+      ? `https://api.github.com/gists/${state.gistId}`
+      : `https://api.github.com/gists`;
+    let method = state.gistId ? 'PATCH' : 'POST';
+
+    // If no direct token, check if we can use server proxy
+    let headers = {
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    };
+
+    if (state.gistToken) {
+      headers['Authorization'] = state.gistToken.startsWith('Bearer ') || state.gistToken.startsWith('token ')
+        ? state.gistToken
+        : `token ${state.gistToken}`;
+    }
+
+    const bodyData = method === 'POST' 
+      ? JSON.stringify({ description: 'Coin Flow Expense Data Backup', public: false, files: filesContent })
+      : JSON.stringify({ files: filesContent });
+
+    let res = await fetch(url, { method, headers, body: bodyData });
+
+    // Fallback to server proxy if direct fetch fails without token
+    if (!res.ok && !state.gistToken) {
+      const proxyUrl = state.gistId ? `/api/gist-proxy?gistId=${state.gistId}` : `/api/gist-proxy`;
+      res = await fetch(proxyUrl, { method, headers: { 'Content-Type': 'application/json' }, body: bodyData });
+    }
+
     if (res.ok) {
-      const gistData = await res.json();
-      const files = gistData.files;
-      const fileKey = files['expenses.json'] ? 'expenses.json' : Object.keys(files)[0];
-      if (fileKey && files[fileKey]) {
-        const content = JSON.parse(files[fileKey].content);
-        if (Array.isArray(content.transactions)) {
-          state.transactions = content.transactions;
-          if (content.userName) state.userName = content.userName;
-          if (typeof content.baseBalance === 'number') state.baseBalance = content.baseBalance;
-          saveToLocalStorage(false);
-          renderApp();
-        }
+      const data = await res.json();
+      if (!state.gistId && data.id) {
+        state.gistId = data.id;
+        localStorage.setItem(GIST_ID_STORAGE, state.gistId);
+        const inputElem = document.getElementById('gist-id-input');
+        if (inputElem) inputElem.value = state.gistId;
       }
+      updateSyncPillStatus('synced');
+      if (manual) showToast('Synced data to GitHub Gist successfully!', 'success');
+      return true;
+    } else {
+      updateSyncPillStatus('failed');
+      if (manual) showToast('Failed to sync with GitHub Gist. Local data is safe.', 'error');
+      return false;
     }
   } catch (err) {
-    console.warn('Gist fetch error:', err);
+    console.warn('Gist Sync error:', err);
+    updateSyncPillStatus('failed');
+    if (manual) showToast('Network/Sync error. Local data remains safe.', 'error');
+    return false;
   }
+}
+
+async function restoreFromGist(manual = false) {
+  if (!state.gistId) {
+    updateSyncPillStatus('unconfigured');
+    if (manual) showToast('Please enter a Gist ID or sync first.', 'warning');
+    return false;
+  }
+
+  try {
+    updateSyncPillStatus('syncing');
+
+    let headers = { 'Accept': 'application/vnd.github.v3+json' };
+    if (state.gistToken) {
+      headers['Authorization'] = state.gistToken.startsWith('Bearer ') || state.gistToken.startsWith('token ')
+        ? state.gistToken
+        : `token ${state.gistToken}`;
+    }
+
+    let res = await fetch(`https://api.github.com/gists/${state.gistId}`, { method: 'GET', headers });
+    
+    if (!res.ok) {
+      res = await fetch(`/api/gist-proxy?gistId=${state.gistId}`, { method: 'GET' });
+    }
+
+    if (res.ok) {
+      const gistData = await res.json();
+      const files = gistData.files || {};
+      const targetFile = files['data.json'] || files['expenses.json'] || files[Object.keys(files)[0]];
+
+      if (targetFile && targetFile.content) {
+        const remoteContent = JSON.parse(targetFile.content);
+
+        // Deduplicate & merge transactions using unique transaction IDs
+        const txMap = new Map();
+        
+        // 1. Keep local transactions
+        (state.transactions || []).forEach(tx => {
+          if (tx && tx.id) txMap.set(tx.id, tx);
+        });
+
+        // 2. Merge remote transactions (remote takes precedence or adds missing)
+        if (Array.isArray(remoteContent.transactions)) {
+          remoteContent.transactions.forEach(tx => {
+            if (tx && tx.id) txMap.set(tx.id, tx);
+          });
+        }
+
+        state.transactions = Array.from(txMap.values());
+        state.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        if (typeof remoteContent.monthlySavings !== 'undefined') {
+          state.monthlySavings = remoteContent.monthlySavings;
+        }
+
+        saveToLocalStorage(true);
+        renderApp();
+        updateSyncPillStatus('synced');
+        if (manual) showToast('Successfully restored and merged Gist data!', 'success');
+        return true;
+      }
+    }
+
+    updateSyncPillStatus('failed');
+    if (manual) showToast('Could not fetch valid Gist backup file.', 'error');
+    return false;
+  } catch (err) {
+    console.warn('Gist Restore error:', err);
+    updateSyncPillStatus('failed');
+    if (manual) showToast('Restore failed. Local data remains intact.', 'error');
+    return false;
+  }
+}
+
+async function syncFromCloudDatabase() {
+  return await restoreFromGist(false);
 }
 
 async function syncToCloudDatabase() {
-  if (!state.gistId || !state.gistToken) return;
-  try {
-    const payload = {
-      userName: state.userName,
-      baseBalance: state.baseBalance,
-      transactions: state.transactions,
-      monthlySavings: state.monthlySavings,
-      updatedAt: new Date().toISOString()
-    };
-    await fetch(`https://api.github.com/gists/${state.gistId}`, {
-      method: 'PATCH',
-      headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${state.gistToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ files: { 'expenses.json': { content: JSON.stringify(payload, null, 2) } } })
-    });
-  } catch (err) {
-    console.warn('Gist push error:', err);
+  return await syncToGitHubGist(false);
+}
+
+function updateSyncPillStatus(status) {
+  const pill = document.getElementById('sync-status-pill');
+  if (!pill) return;
+  
+  if (status === 'synced' || status === 'online') {
+    pill.style.color = '#10b981';
+    pill.innerHTML = `<i class="fa-solid fa-circle-check"></i> Synced`;
+  } else if (status === 'syncing') {
+    pill.style.color = '#3b82f6';
+    pill.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> Syncing...`;
+  } else if (status === 'local') {
+    pill.style.color = '#10b981';
+    pill.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Local DB`;
+  } else if (status === 'unconfigured') {
+    pill.style.color = '#f59e0b';
+    pill.innerHTML = `<i class="fa-brands fa-github"></i> Setup Gist`;
+  } else {
+    pill.style.color = '#ef4444';
+    pill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Sync Failed`;
   }
 }
 
-// --- Seed Initial Data ---
-function seedDemoData(notify = true) {
-  state.userName = 'Sivakumar';
-  state.baseBalance = 0;
-  state.monthlySavings = 1200;
-  state.transactions = [
-    { id: 'tx-1', type: 'income', amount: 500.00, date: new Date().toISOString().split('T')[0], category: 'Income', method: 'Bank Transfer', note: 'Received from Appa' },
-    { id: 'tx-2', type: 'expense', amount: 500.00, date: new Date().toISOString().split('T')[0], category: 'Transportation', method: 'Debit Card', note: 'return home' },
-    { id: 'tx-3', type: 'expense', amount: 150.00, date: new Date().toISOString().split('T')[0], category: 'Food', method: 'Debit Card', note: 'Food Entry' }
-  ];
-  saveToLocalStorage();
-  renderApp();
-  if (notify) showToast('Ledger initialized with default data', 'success');
+// --- Local Date Helper (Prevents Timezone Shifts) ---
+function getLocalDateString(d) {
+  if (!d) return '';
+  const dateObj = typeof d === 'string' ? new Date(d.length === 10 ? d + 'T00:00:00' : d) : d;
+  const yyyy = dateObj.getFullYear();
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const dd = String(dateObj.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
-// --- Core App Render ---
+// --- Seed Sample Data ---
+function seedDemoData(notify = true) {
+  state.monthlySavings = 1200;
+  state.transactions = [
+    { id: 'tx-w1', type: 'expense', amount: 85.00, date: '2026-07-27', category: 'Food', method: 'Credit Card', note: 'Monday Grocery & Fresh Produce' },
+    { id: 'tx-w2', type: 'expense', amount: 160.00, date: '2026-07-28', category: 'Food', method: 'Debit Card', note: 'Tuesday Supermarket Restock' },
+    { id: 'tx-w3', type: 'expense', amount: 60.00, date: '2026-07-29', category: 'Transportation', method: 'Credit Card', note: 'Wednesday Fuel Fill-Up' },
+    { id: 'tx-w4', type: 'expense', amount: 140.00, date: '2026-07-30', category: 'Shopping', method: 'Credit Card', note: 'Thursday Office Accessories' },
+    { id: 'tx-w5', type: 'expense', amount: 95.00, date: '2026-07-31', category: 'Entertainment', method: 'Debit Card', note: 'Friday Dinner & IMAX Movie' },
+    { id: 'tx-101', type: 'income', amount: 4500, date: '2026-07-01', category: 'Income', method: 'Bank Transfer', note: 'Monthly Tech Salary Paycheck' },
+    { id: 'tx-102', type: 'expense', amount: 1250, date: '2026-07-02', category: 'Housing', method: 'Bank Transfer', note: 'Apartment Rent & Building Maintenance' },
+    { id: 'tx-103', type: 'expense', amount: 185.50, date: '2026-07-05', category: 'Food', method: 'Credit Card', note: 'Weekly Organic Groceries at Whole Foods' },
+    { id: 'tx-104', type: 'expense', amount: 65.00, date: '2026-07-08', category: 'Transportation', method: 'Credit Card', note: 'Vehicle Fuel Fill-Up' },
+    { id: 'tx-105', type: 'expense', amount: 140.00, date: '2026-07-12', category: 'Housing', method: 'Debit Card', note: 'Electric & High-Speed Fiber Internet Bill' },
+    { id: 'tx-106', type: 'expense', amount: 95.00, date: '2026-07-15', category: 'Food', method: 'Credit Card', note: 'Dinner & Drinks with Team' },
+    { id: 'tx-107', type: 'expense', amount: 220.00, date: '2026-07-18', category: 'Shopping', method: 'Credit Card', note: 'Summer Apparel & Accessories' },
+    { id: 'tx-108', type: 'expense', amount: 45.00, date: '2026-07-22', category: 'Entertainment', method: 'Debit Card', note: 'IMAX Movie Tickets & Snacks' },
+    { id: 'tx-109', type: 'expense', amount: 110.00, date: '2026-07-25', category: 'Health', method: 'Credit Card', note: 'Monthly Gym Membership & Supplements' },
+    { id: 'tx-201', type: 'income', amount: 4500, date: '2026-06-01', category: 'Income', method: 'Bank Transfer', note: 'Monthly Salary Paycheck' },
+    { id: 'tx-202', type: 'expense', amount: 1250, date: '2026-06-02', category: 'Housing', method: 'Bank Transfer', note: 'June Apartment Rent' },
+    { id: 'tx-203', type: 'expense', amount: 210.00, date: '2026-06-07', category: 'Food', method: 'Credit Card', note: 'Groceries & Gourmet Supplies' },
+    { id: 'tx-204', type: 'expense', amount: 180.00, date: '2026-06-14', category: 'Shopping', method: 'Credit Card', note: 'Ergonomic Desk Chair Upgrade' },
+    { id: 'tx-205', type: 'expense', amount: 75.00, date: '2026-06-20', category: 'Transportation', method: 'Credit Card', note: 'Fuel & Highway Toll Pass' },
+    { id: 'tx-206', type: 'expense', amount: 130.00, date: '2026-06-25', category: 'Education', method: 'Credit Card', note: 'Online Cloud Certification Course' }
+  ];
+
+  saveToLocalStorage();
+  renderApp();
+  if (notify) showToast('Database reset and seeded with sample history!', 'success');
+}
+
+// --- Render Core App ---
 function renderApp() {
-  updateProfileUI();
   calculateMetrics();
-  renderRecentActivity();
+  updateReportMetrics();
+  renderTransactionsTable();
   if (activeReportTab === 'heatmap') {
     renderHeatmapChart();
   }
   renderCharts();
 }
 
-// --- User Profile & Greeting UI ---
-function updateProfileUI() {
-  const titleEl = document.getElementById('user-greeting-title');
-  if (titleEl) {
-    titleEl.innerText = getGreetingByTime();
-  }
-  const greetingEl = document.getElementById('user-greeting-name');
-  if (greetingEl) {
-    greetingEl.innerHTML = `${escapeHtml(state.userName)} <span class="material-symbols-outlined text-sm text-on-surface-variant">edit</span>`;
-  }
-  const navUserEl = document.getElementById('nav-user-name');
-  if (navUserEl) {
-    navUserEl.innerText = state.userName;
-  }
-}
+// --- Transactions Table Rendering ---
+function renderTransactionsTable() {
+  const tbody = document.getElementById('transactions-tbody');
+  const emptyState = document.getElementById('empty-state');
+  if (!tbody) return;
 
-function openProfileModal() {
-  const nameInput = document.getElementById('profile-name-input');
-  if (nameInput) nameInput.value = state.userName || 'Sivakumar';
-  const modal = document.getElementById('profile-modal');
-  if (modal) modal.classList.add('active');
-}
+  const searchInput = document.getElementById('search-input');
+  const filterTypeEl = document.getElementById('filter-type');
+  const filterCatEl = document.getElementById('filter-category');
+  const filterSortEl = document.getElementById('filter-sort');
 
-function closeProfileModal() {
-  const modal = document.getElementById('profile-modal');
-  if (modal) modal.classList.remove('active');
-}
+  const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  const filterType = filterTypeEl ? filterTypeEl.value : 'all';
+  const filterCat = filterCatEl ? filterCatEl.value : 'all';
+  const filterSort = filterSortEl ? filterSortEl.value : 'date-desc';
 
-function handleProfileSubmit(e) {
-  e.preventDefault();
-  const nameVal = document.getElementById('profile-name-input').value.trim();
-
-  if (nameVal) {
-    state.userName = nameVal;
-  }
-  saveToLocalStorage();
-  closeProfileModal();
-  renderApp();
-  showToast(`Profile name updated!`, 'success');
-}
-
-// --- Keypad Functions ---
-function updateDisplay() {
-  const display = document.getElementById('amountDisplay');
-  if (!display) return;
-  if (currentKeypadAmount === "0" || !currentKeypadAmount) {
-    display.innerText = "0.00";
-  } else {
-    display.innerText = currentKeypadAmount;
-  }
-}
-
-function appendNum(num) {
-  if (currentKeypadAmount === "0" && num !== ".") {
-    currentKeypadAmount = num;
-  } else if (currentKeypadAmount.length < 8) {
-    if (num === '.' && currentKeypadAmount.includes('.')) return;
-    currentKeypadAmount += num;
-  }
-  updateDisplay();
-}
-
-function deleteNum() {
-  if (currentKeypadAmount.length > 1) {
-    currentKeypadAmount = currentKeypadAmount.slice(0, -1);
-  } else {
-    currentKeypadAmount = "0";
-  }
-  updateDisplay();
-}
-
-function selectCategory(catName, btnEl) {
-  selectedKeypadCategory = catName;
-  document.querySelectorAll('.cat-btn').forEach(b => {
-    b.className = "cat-btn flex flex-col items-center p-stack-sm rounded-lg bg-surface-container border border-outline-variant/30 hover:border-primary-fixed/50 transition-all w-20 cursor-pointer";
-    const textSpan = b.querySelector('span:last-child');
-    if (textSpan) textSpan.classList.add('text-on-surface-variant');
-  });
-  if (btnEl) {
-    btnEl.className = "cat-btn flex flex-col items-center p-stack-sm rounded-lg bg-primary-container/20 border border-primary-fixed text-primary-fixed transition-all w-20 shadow-[0_0_15px_rgba(0,219,233,0.15)] cursor-pointer";
-    const textSpan = btnEl.querySelector('span:last-child');
-    if (textSpan) textSpan.classList.remove('text-on-surface-variant');
-  }
-}
-
-function triggerSuccess() {
-  const amountVal = parseFloat(currentKeypadAmount) || 0;
-  if (amountVal <= 0) {
-    showToast('Please enter an amount on the keypad!', 'danger');
-    return;
-  }
-
-  const newTx = {
-    id: `tx-${Date.now()}`,
-    type: 'expense',
-    amount: amountVal,
-    date: new Date().toISOString().split('T')[0],
-    category: selectedKeypadCategory || 'Fuel',
-    method: 'Debit Card',
-    note: `${selectedKeypadCategory || 'Expense'} Entry`
-  };
-
-  state.transactions.unshift(newTx);
-  saveToLocalStorage();
-
-  const overlay = document.getElementById('successOverlay');
-  if (overlay) {
-    overlay.classList.add('active');
-    setTimeout(() => {
-      overlay.classList.remove('active');
-      currentKeypadAmount = "0";
-      updateDisplay();
-      closeTransactionModal();
-      renderApp();
-      showToast(`Logged ₹${amountVal.toFixed(2)} (${selectedKeypadCategory})!`, 'success');
-    }, 600);
-  } else {
-    currentKeypadAmount = "0";
-    updateDisplay();
-    closeTransactionModal();
-    renderApp();
-    showToast(`Logged ₹${amountVal.toFixed(2)} (${selectedKeypadCategory})!`, 'success');
-  }
-}
-
-// --- Transaction Edit & Delete Controls ---
-function openEditModal(txId) {
-  currentEditingTxId = txId;
-  const tx = state.transactions.find(t => t.id === txId);
-  if (!tx) return;
-
-  document.getElementById('edit-tx-id').value = tx.id;
-  document.getElementById('edit-tx-type').value = tx.type || 'expense';
-  document.getElementById('edit-tx-amount').value = tx.amount;
-  document.getElementById('edit-tx-note').value = tx.note || '';
-  document.getElementById('edit-tx-category').value = tx.category || 'Other';
-  document.getElementById('edit-tx-date').value = tx.date || new Date().toISOString().split('T')[0];
-
-  const modal = document.getElementById('edit-modal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeEditModal() {
-  const modal = document.getElementById('edit-modal');
-  if (modal) modal.classList.remove('active');
-  currentEditingTxId = null;
-}
-
-function handleEditSubmit(e) {
-  e.preventDefault();
-  const id = document.getElementById('edit-tx-id').value;
-  const type = document.getElementById('edit-tx-type').value;
-  const amount = parseFloat(document.getElementById('edit-tx-amount').value);
-  const note = document.getElementById('edit-tx-note').value.trim();
-  const category = document.getElementById('edit-tx-category').value;
-  const date = document.getElementById('edit-tx-date').value;
-
-  if (isNaN(amount) || amount <= 0) {
-    showToast('Please enter a valid positive amount!', 'danger');
-    return;
-  }
-
-  const idx = state.transactions.findIndex(t => t.id === id);
-  if (idx !== -1) {
-    state.transactions[idx] = {
-      id,
-      type,
-      amount,
-      note,
-      category,
-      date,
-      method: type === 'income' ? 'Bank Transfer' : 'Debit Card'
-    };
-    saveToLocalStorage();
-    closeEditModal();
-    renderApp();
-    showToast('Transaction updated!', 'success');
-  }
-}
-
-function handleDeleteCurrentEditTx() {
-  if (!currentEditingTxId) return;
-  if (confirm('Delete this transaction item permanently?')) {
-    state.transactions = state.transactions.filter(t => t.id !== currentEditingTxId);
-    saveToLocalStorage();
-    closeEditModal();
-    closeAllTransactionsModal();
-    renderApp();
-    showToast('Transaction deleted', 'warning');
-  }
-}
-
-// --- All Transactions List Modal ---
-function openAllTransactionsModal() {
-  renderAllTransactionsList();
-  const modal = document.getElementById('all-transactions-modal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeAllTransactionsModal() {
-  const modal = document.getElementById('all-transactions-modal');
-  if (modal) modal.classList.remove('active');
-}
-
-function renderAllTransactionsList() {
-  const container = document.getElementById('all-tx-list-container');
-  if (!container) return;
-
-  const searchQuery = (document.getElementById('all-tx-search')?.value || '').toLowerCase().trim();
-
+  // Filtering
   let filtered = state.transactions.filter(tx => {
     const note = (tx.note || '').toLowerCase();
     const category = (tx.category || '').toLowerCase();
-    return note.includes(searchQuery) || category.includes(searchQuery);
+    const method = (tx.method || '').toLowerCase();
+
+    const matchesSearch = note.includes(searchQuery) ||
+                          category.includes(searchQuery) ||
+                          method.includes(searchQuery);
+    const matchesType = filterType === 'all' || tx.type === filterType;
+    const matchesCat = filterCat === 'all' || tx.category === filterCat;
+
+    return matchesSearch && matchesType && matchesCat;
   });
+
+  // Sorting
+  filtered.sort((a, b) => {
+    if (filterSort === 'date-desc') return new Date(b.date) - new Date(a.date);
+    if (filterSort === 'date-asc') return new Date(a.date) - new Date(b.date);
+    if (filterSort === 'amount-desc') return b.amount - a.amount;
+    if (filterSort === 'amount-asc') return a.amount - b.amount;
+    return 0;
+  });
+
+  tbody.innerHTML = '';
 
   if (filtered.length === 0) {
-    container.innerHTML = `<p class="text-center text-on-surface-variant font-label-sm py-4">No matching transactions found</p>`;
+    if (emptyState) emptyState.style.display = 'block';
     return;
   }
+  if (emptyState) emptyState.style.display = 'none';
 
-  container.innerHTML = filtered.map(tx => {
-    const isIncome = tx.type === 'income';
-    const textColor = isIncome ? 'text-primary-fixed-dim' : 'text-on-surface';
-    const sign = isIncome ? '+' : '-';
-    const displayAmount = `${sign}₹${parseFloat(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  filtered.forEach(tx => {
+    const catConfig = CATEGORY_MAP[tx.category] || CATEGORY_MAP.Other;
+    const tr = document.createElement('tr');
 
-    return `
-      <div class="glass-panel rounded-lg p-3 flex justify-between items-center hover:bg-surface-variant/30 transition-colors">
-        <div>
-          <p class="font-body-md text-on-surface text-sm font-semibold">${escapeHtml(tx.note || tx.category)}</p>
-          <p class="font-label-sm text-on-surface-variant text-[11px]">${tx.date} • ${tx.category}</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="font-label-md text-sm font-bold ${textColor}">${displayAmount}</span>
-          <button onclick="openEditModal('${tx.id}')" class="p-1.5 rounded-lg bg-surface-variant hover:text-primary-fixed text-on-surface-variant" title="Edit">
-            <span class="material-symbols-outlined text-sm">edit</span>
-          </button>
-        </div>
-      </div>
+    tr.innerHTML = `
+      <td>${formatDate(tx.date)}</td>
+      <td>
+        <span class="category-badge" style="color: ${catConfig.color}; background: ${catConfig.bg};">
+          <i class="fa-solid ${catConfig.icon}"></i> ${tx.category}
+        </span>
+      </td>
+      <td><strong>${escapeHtml(tx.note)}</strong></td>
+      <td><span style="color: var(--text-muted); font-size: 0.85rem;"><i class="fa-regular fa-credit-card"></i> ${tx.method}</span></td>
+      <td style="text-align: right;">
+        <span class="amount-display ${tx.type}">
+          ${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}
+        </span>
+      </td>
+      <td class="admin-only" style="text-align: center;">
+        <button class="btn btn-secondary btn-icon-only" onclick="editTransaction('${tx.id}')" title="Edit Item">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+        <button class="btn btn-outline-danger btn-icon-only" onclick="deleteTransaction('${tx.id}')" title="Delete Item">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </td>
     `;
-  }).join('');
+    tbody.appendChild(tr);
+  });
 }
 
-// --- Send & Receive Modals ---
-function openSendModal() {
-  document.getElementById('send-recipient').value = '';
-  document.getElementById('send-amount').value = '';
-  document.getElementById('send-note').value = '';
-  const modal = document.getElementById('send-modal');
-  if (modal) modal.classList.add('active');
-}
+// --- Report Tab Switcher ---
+function switchReportTab(tabMode) {
+  activeReportTab = tabMode;
 
-function closeSendModal() {
-  const modal = document.getElementById('send-modal');
-  if (modal) modal.classList.remove('active');
-}
+  const btnMonthly = document.getElementById('tab-btn-monthly');
+  const btnWeekly = document.getElementById('tab-btn-weekly');
+  const btnDatabase = document.getElementById('tab-btn-database');
+  const btnHeatmap = document.getElementById('tab-btn-heatmap');
 
-function handleSendSubmit(e) {
-  e.preventDefault();
-  const recipient = document.getElementById('send-recipient').value.trim();
-  const amount = parseFloat(document.getElementById('send-amount').value);
-  const note = document.getElementById('send-note').value.trim();
+  const mnavMonthly = document.getElementById('mnav-monthly');
+  const mnavWeekly = document.getElementById('mnav-weekly');
+  const mnavDatabase = document.getElementById('mnav-database');
+  const mnavHeatmap = document.getElementById('mnav-heatmap');
 
-  if (!recipient || isNaN(amount) || amount <= 0) {
-    showToast('Please enter recipient and valid amount!', 'danger');
-    return;
+  const panelMonthly = document.getElementById('panel-report-monthly');
+  const panelWeekly = document.getElementById('panel-report-weekly');
+  const panelDatabase = document.getElementById('panel-report-database');
+  const panelHeatmap = document.getElementById('panel-report-heatmap');
+
+  [btnMonthly, btnWeekly, btnDatabase, btnHeatmap].forEach(b => { if (b) b.classList.remove('active'); });
+  [mnavMonthly, mnavWeekly, mnavDatabase, mnavHeatmap].forEach(b => { if (b) b.classList.remove('active'); });
+  [panelMonthly, panelWeekly, panelDatabase, panelHeatmap].forEach(p => { if (p) p.style.display = 'none'; });
+
+  if (tabMode === 'monthly') {
+    if (btnMonthly) btnMonthly.classList.add('active');
+    if (mnavMonthly) mnavMonthly.classList.add('active');
+    if (panelMonthly) panelMonthly.style.display = 'block';
+  } else if (tabMode === 'weekly') {
+    if (btnWeekly) btnWeekly.classList.add('active');
+    if (mnavWeekly) mnavWeekly.classList.add('active');
+    if (panelWeekly) panelWeekly.style.display = 'block';
+  } else if (tabMode === 'database') {
+    if (btnDatabase) btnDatabase.classList.add('active');
+    if (mnavDatabase) mnavDatabase.classList.add('active');
+    if (panelDatabase) panelDatabase.style.display = 'block';
+  } else if (tabMode === 'heatmap') {
+    if (btnHeatmap) btnHeatmap.classList.add('active');
+    if (mnavHeatmap) mnavHeatmap.classList.add('active');
+    if (panelHeatmap) panelHeatmap.style.display = 'block';
   }
 
-  state.transactions.unshift({
-    id: `tx-${Date.now()}`,
-    type: 'expense',
-    amount: amount,
-    date: new Date().toISOString().split('T')[0],
-    category: 'Transportation',
-    method: 'Bank Transfer',
-    note: note ? `Sent to ${recipient} (${note})` : `Sent to ${recipient}`
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      renderApp();
+    });
   });
-
-  saveToLocalStorage();
-  closeSendModal();
-  renderApp();
-  showToast(`Sent ₹${amount.toFixed(2)} to ${recipient}!`, 'success');
 }
 
-function openReceiveModal() {
-  document.getElementById('receive-sender').value = '';
-  document.getElementById('receive-amount').value = '';
-  document.getElementById('receive-note').value = '';
-  const modal = document.getElementById('receive-modal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeReceiveModal() {
-  const modal = document.getElementById('receive-modal');
-  if (modal) modal.classList.remove('active');
-}
-
-function handleReceiveSubmit(e) {
-  e.preventDefault();
-  const sender = document.getElementById('receive-sender').value.trim();
-  const amount = parseFloat(document.getElementById('receive-amount').value);
-  const note = document.getElementById('receive-note').value.trim();
-
-  if (!sender || isNaN(amount) || amount <= 0) {
-    showToast('Please enter sender name and valid amount!', 'danger');
-    return;
-  }
-
-  state.transactions.unshift({
-    id: `tx-${Date.now()}`,
-    type: 'income',
-    amount: amount,
-    date: new Date().toISOString().split('T')[0],
-    category: 'Income',
-    method: 'Bank Transfer',
-    note: note ? `Received from ${sender} (${note})` : `Received from ${sender}`
-  });
-
-  saveToLocalStorage();
-  closeReceiveModal();
-  renderApp();
-  showToast(`Received ₹${amount.toFixed(2)} from ${sender}!`, 'success');
-}
-
-// --- Modal Controls ---
-function openTransactionModal() {
-  currentKeypadAmount = "0";
-  updateDisplay();
-  const overlay = document.getElementById('successOverlay');
-  if (overlay) overlay.classList.remove('active');
-  const modal = document.getElementById('transaction-modal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeTransactionModal() {
-  const overlay = document.getElementById('successOverlay');
-  if (overlay) overlay.classList.remove('active');
-  const modal = document.getElementById('transaction-modal');
-  if (modal) modal.classList.remove('active');
-}
-
-function openVaultModal() {
-  const gistIdInput = document.getElementById('gist-id-input');
-  const gistTokenInput = document.getElementById('gist-token-input');
-  if (gistIdInput) gistIdInput.value = state.gistId || '';
-  if (gistTokenInput) gistTokenInput.value = state.gistToken || '';
-  const modal = document.getElementById('vault-modal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeVaultModal() {
-  const modal = document.getElementById('vault-modal');
-  if (modal) modal.classList.remove('active');
-}
-
-function handleVaultFormSubmit(e) {
-  e.preventDefault();
-  state.gistId = document.getElementById('gist-id-input').value.trim();
-  state.gistToken = document.getElementById('gist-token-input').value.trim();
-  saveToLocalStorage();
-  closeVaultModal();
-  syncFromCloudDatabase();
-  showToast('Vault credentials saved & synced', 'success');
-}
-
-function openSavingsModal() {
-  openProfileModal();
-}
-
-// --- Dynamic Balance Calculation (Starts with 0 + Net Transactions) ---
+// --- Metric Calculations ---
 function calculateMetrics() {
-  let base = (typeof state.baseBalance === 'number' && !isNaN(state.baseBalance)) ? state.baseBalance : 0;
+  const now = new Date();
+  const currentMonthKey = getLocalDateString(now).substring(0, 7); // YYYY-MM
+  const currentMonthName = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-  let totalIncome = 0;
-  let totalExpense = 0;
+  // Update month badge UI (e.g. July 2026)
+  const monthBadgeEl = document.getElementById('current-month-badge');
+  if (monthBadgeEl) monthBadgeEl.innerText = currentMonthName;
+
+  let allTimeIncome = 0;
+  let allTimeExpense = 0;
+  let currentMonthIncome = 0;
+  let currentMonthExpense = 0;
+  let currentMonthExpenseCount = 0;
+
+  state.transactions.forEach(tx => {
+    const val = parseFloat(tx.amount) || 0;
+    const isCurrentMonth = tx.date && tx.date.startsWith(currentMonthKey);
+
+    if (tx.type === 'income') {
+      allTimeIncome += val;
+      if (isCurrentMonth) {
+        currentMonthIncome += val;
+      }
+    } else {
+      allTimeExpense += val;
+      if (isCurrentMonth) {
+        currentMonthExpense += val;
+        currentMonthExpenseCount++;
+      }
+    }
+  });
+
+  // Net Balance STAYS ALL-TIME (Cumulative)
+  const netBalance = allTimeIncome - allTimeExpense;
+
+  // Check month filter dropdown
+  const filterMonthEl = document.getElementById('filter-month');
+  const filterVal = filterMonthEl ? filterMonthEl.value : 'current';
+
+  const displayIncome = filterVal === 'all' ? allTimeIncome : currentMonthIncome;
+  const displayExpense = filterVal === 'all' ? allTimeExpense : currentMonthExpense;
+  const displayCount = filterVal === 'all' 
+    ? state.transactions.filter(t => t.type === 'expense').length 
+    : currentMonthExpenseCount;
+
+  // DOM Elements
+  // 1. Net Balance: Always All-Time Cumulative
+  document.getElementById('metric-balance').innerText = formatCurrency(netBalance);
+  
+  // 2. Monthly Income: Restarts on 1st of every month
+  document.getElementById('metric-income').innerText = formatCurrency(displayIncome);
+  
+  // 3. Monthly Spent: Restarts on 1st of every month
+  document.getElementById('metric-expense').innerText = formatCurrency(displayExpense);
+  
+  const metricSavingsEl = document.getElementById('metric-savings');
+  if (metricSavingsEl) {
+    metricSavingsEl.innerText = formatCurrency(state.monthlySavings || 0);
+  }
+
+  const savingsSubtextEl = document.getElementById('savings-subtext-info');
+  if (savingsSubtextEl) {
+    savingsSubtextEl.innerText = `Manually set monthly target`;
+  }
+
+  const countEl = document.getElementById('metric-count');
+  if (countEl) {
+    countEl.innerText = filterVal === 'all'
+      ? `${displayCount} items logged (All Time)`
+      : `${displayCount} items logged (${currentMonthName})`;
+  }
+}
+
+// --- Detailed Weekly & Monthly Report Metrics ---
+function updateReportMetrics() {
+  // 1. Monthly Report Highlights
+  const currentMonthKey = new Date().toISOString().substring(0, 7);
+  const now = new Date();
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthKey = prevMonthDate.toISOString().substring(0, 7);
+
+  let thisMonthTotal = 0;
+  let prevMonthTotal = 0;
+  const monthCatMap = {};
+
+  state.transactions.forEach(tx => {
+    if (tx.type === 'expense' && tx.date) {
+      const val = parseFloat(tx.amount) || 0;
+      if (tx.date.startsWith(currentMonthKey)) {
+        thisMonthTotal += val;
+        monthCatMap[tx.category] = (monthCatMap[tx.category] || 0) + val;
+      } else if (tx.date.startsWith(prevMonthKey)) {
+        prevMonthTotal += val;
+      }
+    }
+  });
+
+  const weeklyAvg = thisMonthTotal / 4;
+  let momTrendStr = '0%';
+  if (prevMonthTotal > 0) {
+    const diff = ((thisMonthTotal - prevMonthTotal) / prevMonthTotal) * 100;
+    momTrendStr = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%`;
+  } else if (thisMonthTotal > 0) {
+    momTrendStr = '+100%';
+  }
+
+  let topMonthCat = 'None';
+  let maxMonthCatVal = 0;
+  Object.keys(monthCatMap).forEach(cat => {
+    if (monthCatMap[cat] > maxMonthCatVal) {
+      maxMonthCatVal = monthCatMap[cat];
+      topMonthCat = cat;
+    }
+  });
+
+  const elMonthTotal = document.getElementById('monthly-report-total');
+  const elMonthWeeklyAvg = document.getElementById('monthly-report-weekly-avg');
+  const elMonthMom = document.getElementById('monthly-report-mom-trend');
+  const elMonthTopCat = document.getElementById('monthly-report-top-cat');
+
+  if (elMonthTotal) elMonthTotal.innerText = formatCurrency(thisMonthTotal);
+  if (elMonthWeeklyAvg) elMonthWeeklyAvg.innerText = formatCurrency(weeklyAvg);
+  if (elMonthMom) {
+    elMonthMom.innerText = momTrendStr;
+    elMonthMom.style.color = momTrendStr.startsWith('-') ? 'var(--success)' : 'var(--danger)';
+  }
+  if (elMonthTopCat) elMonthTopCat.innerText = topMonthCat;
+
+  // 2. Weekly Report Highlights
+  const today = new Date();
+  const day = today.getDay();
+  const diffToMon = (day === 0 ? -6 : 1 - day);
+  const monDate = new Date(today);
+  monDate.setDate(today.getDate() + diffToMon);
+
+  const sunDate = new Date(monDate);
+  sunDate.setDate(monDate.getDate() + 6);
+
+  const monStr = monDate.toISOString().substring(0, 10);
+  const sunStr = sunDate.toISOString().substring(0, 10);
+
+  let thisWeekTotal = 0;
+  const daySpendMap = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
+  const weekCatMap = {};
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  state.transactions.forEach(tx => {
+    if (tx.type === 'expense' && tx.date) {
+      if (tx.date >= monStr && tx.date <= sunStr) {
+        const val = parseFloat(tx.amount) || 0;
+        thisWeekTotal += val;
+
+        const dObj = new Date(tx.date + 'T00:00:00');
+        const dayName = dayNames[dObj.getDay()];
+        if (daySpendMap[dayName] !== undefined) {
+          daySpendMap[dayName] += val;
+        }
+
+        weekCatMap[tx.category] = (weekCatMap[tx.category] || 0) + val;
+      }
+    }
+  });
+
+  const dailyAvg = thisWeekTotal / 7;
+
+  let peakDayName = 'None';
+  let peakDayVal = 0;
+  Object.keys(daySpendMap).forEach(d => {
+    if (daySpendMap[d] > peakDayVal) {
+      peakDayVal = daySpendMap[d];
+      peakDayName = d;
+    }
+  });
+
+  let topWeekCat = 'None';
+  let maxWeekCatVal = 0;
+  Object.keys(weekCatMap).forEach(cat => {
+    if (weekCatMap[cat] > maxWeekCatVal) {
+      maxWeekCatVal = weekCatMap[cat];
+      topWeekCat = cat;
+    }
+  });
+
+  const elWeekTotal = document.getElementById('weekly-report-total');
+  const elWeekDailyAvg = document.getElementById('weekly-report-daily-avg');
+  const elWeekPeakDay = document.getElementById('weekly-report-peak-day');
+  const elWeekTopCat = document.getElementById('weekly-report-top-cat');
+
+  if (elWeekTotal) elWeekTotal.innerText = formatCurrency(thisWeekTotal);
+  if (elWeekDailyAvg) elWeekDailyAvg.innerText = formatCurrency(dailyAvg);
+  if (elWeekPeakDay) elWeekPeakDay.innerText = peakDayVal > 0 ? `${peakDayName} (${formatCurrency(peakDayVal)})` : 'None';
+  if (elWeekTopCat) elWeekTopCat.innerText = topWeekCat;
+
+  // 3. AI Database Analysis Highlights
+  let dbIncome = 0;
+  let dbExpense = 0;
+  let maxExpenseTx = null;
+  const methodCountMap = {};
 
   state.transactions.forEach(tx => {
     const val = parseFloat(tx.amount) || 0;
     if (tx.type === 'income') {
-      totalIncome += val;
+      dbIncome += val;
     } else {
-      totalExpense += val;
+      dbExpense += val;
+      if (!maxExpenseTx || val > maxExpenseTx.amount) {
+        maxExpenseTx = tx;
+      }
+      methodCountMap[tx.method] = (methodCountMap[tx.method] || 0) + 1;
     }
   });
 
-  const netBalance = base + totalIncome - totalExpense;
+  const netSavings = dbIncome - dbExpense;
+  const savingsRatio = dbIncome > 0 ? Math.max(0, (netSavings / dbIncome) * 100) : 0;
+  
+  // Health Score Calculation (0 to 100)
+  let healthScore = 70;
+  if (dbIncome > 0) {
+    if (savingsRatio >= 30) healthScore = 92;
+    else if (savingsRatio >= 20) healthScore = 85;
+    else if (savingsRatio >= 10) healthScore = 75;
+    else if (savingsRatio > 0) healthScore = 65;
+    else healthScore = 45;
+  }
+  if (dbExpense > dbIncome && dbIncome > 0) healthScore = 35;
 
-  const balanceEl = document.getElementById('metric-balance');
-  if (balanceEl) {
-    balanceEl.innerText = formatCurrencyAmount(netBalance);
+  let topMethodName = 'None';
+  let maxMethodCount = 0;
+  Object.keys(methodCountMap).forEach(m => {
+    if (methodCountMap[m] > maxMethodCount) {
+      maxMethodCount = methodCountMap[m];
+      topMethodName = m;
+    }
+  });
+
+  const daysSpan = Math.max(1, Math.ceil(state.transactions.length / 2) * 5);
+  const velocity = dbExpense / daysSpan;
+
+  const elHealthScore = document.getElementById('analysis-health-score');
+  const elSavingsRate = document.getElementById('db-analysis-savings-rate');
+  const elLargestTx = document.getElementById('db-analysis-largest-tx');
+  const elLargestNote = document.getElementById('db-analysis-largest-note');
+  const elTopMethod = document.getElementById('db-analysis-top-method');
+  const elVelocity = document.getElementById('db-analysis-velocity');
+  const elInsightsList = document.getElementById('db-analysis-insights-list');
+
+  if (elHealthScore) elHealthScore.innerText = `${healthScore}/100`;
+  if (elSavingsRate) elSavingsRate.innerText = `${savingsRatio.toFixed(1)}%`;
+  if (elLargestTx) elLargestTx.innerText = maxExpenseTx ? formatCurrency(maxExpenseTx.amount) : '₹0.00';
+  if (elLargestNote) elLargestNote.innerText = maxExpenseTx ? maxExpenseTx.note : 'None';
+  if (elTopMethod) elTopMethod.innerText = topMethodName;
+  if (elVelocity) elVelocity.innerText = `${formatCurrency(velocity)}/day`;
+
+  if (elInsightsList) {
+    let insights = [];
+    if (netSavings > 0) {
+      insights.push(`<strong>Healthy Cashflow:</strong> You are saving ${savingsRatio.toFixed(1)}% of your total gross income.`);
+    } else {
+      insights.push(`<strong>Deficit Alert:</strong> Total expenses exceed recorded income. Consider reviewing non-essential spending.`);
+    }
+
+    if (maxExpenseTx) {
+      insights.push(`<strong>Largest Single Expenditure:</strong> "${escapeHtml(maxExpenseTx.note)}" at ${formatCurrency(maxExpenseTx.amount)} (${maxExpenseTx.category}).`);
+    }
+
+    if (topMethodName !== 'None') {
+      insights.push(`<strong>Preferred Payment Channel:</strong> ${topMethodName} accounts for ${maxMethodCount} transaction${maxMethodCount > 1 ? 's' : ''}.`);
+    }
+
+    elInsightsList.innerHTML = insights.map(item => `<li>${item}</li>`).join('');
   }
 }
 
-function formatCurrencyAmount(val) {
-  const formatted = Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return val < 0 ? `-₹${formatted}` : `₹${formatted}`;
+// --- Month Filter & Restart Actions ---
+function handleMonthFilterChange(e) {
+  renderApp();
 }
 
-// --- Recent Activity Renderer with Edit & Delete ---
-function renderRecentActivity() {
-  const container = document.getElementById('recent-activity-list');
-  if (!container) return;
-
-  if (state.transactions.length === 0) {
-    container.innerHTML = `
-      <div class="glass-panel rounded-lg p-stack-md text-center text-on-surface-variant font-label-sm">
-        No recent activity logged
-      </div>
-    `;
+function restartMonthlySpent() {
+  if (!state.isAdminLoggedIn) {
+    openAdminModal();
     return;
   }
 
-  const items = state.transactions.slice(0, 5);
-  container.innerHTML = items.map(tx => {
-    const isIncome = tx.type === 'income';
-    const icon = isIncome ? 'arrow_downward' : 'arrow_outward';
-    const textColor = isIncome ? 'text-primary-fixed-dim' : 'text-on-surface';
-    const sign = isIncome ? '+' : '-';
-    const displayAmount = `${sign}₹${parseFloat(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  
+  if (confirm(`Restart monthly spent for ${currentMonthName}?\n\nThis will clear/archive current month's expenses so your spent counter restarts fresh from ₹0.00 for ${currentMonthName}.`)) {
+    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    // Remove expense transactions for current month to reset monthly counter
+    state.transactions = state.transactions.filter(tx => {
+      return !(tx.type === 'expense' && tx.date.startsWith(currentMonthKey));
+    });
 
-    return `
-      <div onclick="openEditModal('${tx.id}')" class="glass-panel rounded-lg p-stack-md flex justify-between items-center hover:bg-surface-variant/40 cursor-pointer transition-colors group">
-        <div class="flex items-center gap-stack-md">
-          <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center ${textColor}">
-            <span class="material-symbols-outlined">${icon}</span>
-          </div>
-          <div>
-            <p class="font-body-md text-body-md text-on-surface flex items-center gap-1 font-semibold">
-              ${escapeHtml(tx.note || tx.category)}
-              <span class="material-symbols-outlined text-xs text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">edit</span>
-            </p>
-            <p class="font-label-sm text-label-sm text-on-surface-variant">${tx.date}</p>
-          </div>
-        </div>
-        <div class="text-right flex items-center gap-2">
-          <div>
-            <p class="font-label-md text-label-md ${textColor}">${displayAmount}</p>
-            <p class="font-label-sm text-label-sm text-on-surface-variant">${tx.category}</p>
-          </div>
-          <button onclick="event.stopPropagation(); openEditModal('${tx.id}')" class="p-1 rounded text-on-surface-variant hover:text-primary-fixed transition-colors" title="Edit Transaction">
-            <span class="material-symbols-outlined text-sm">edit</span>
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
+    saveToLocalStorage();
+    renderApp();
+    showToast(`Monthly spent restarted to ₹0.00 for ${currentMonthName}!`, 'success');
+  }
 }
 
-// --- Report Tabs Router & Dynamic Chart Renderer ---
-function switchReportTab(tabMode) {
-  activeReportTab = tabMode;
-
-  ['monthly', 'weekly', 'database', 'heatmap'].forEach(t => {
-    const btn = document.getElementById(`tab-btn-${t}`);
-    const panel = document.getElementById(`panel-report-${t}`);
-    if (btn) {
-      if (t === tabMode) {
-        btn.className = "px-3.5 py-1.5 rounded-lg bg-primary-container/20 text-primary-fixed border border-primary-fixed/40 font-label-sm active cursor-pointer";
-      } else {
-        btn.className = "px-3.5 py-1.5 rounded-lg bg-surface-variant text-on-surface-variant font-label-sm cursor-pointer";
-      }
-    }
-    if (panel) {
-      panel.style.display = t === tabMode ? 'block' : 'none';
-    }
-  });
-
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      renderCharts();
-    }, 50);
-  });
-}
-
-function toggleViewAllTransactions() {
-  openAllTransactionsModal();
-}
-
-// --- Chart Renderers ---
+// --- Chart Visualizations Router ---
 function renderCharts() {
   if (activeReportTab === 'monthly') {
     renderMonthlyExpenseChart();
     renderCategoryChart();
   } else if (activeReportTab === 'weekly') {
     renderWeeklyExpenseChart();
+    renderWeeklyCategoryChart();
   } else if (activeReportTab === 'database') {
     renderMethodChart();
+    renderBalanceTrendChart();
+  } else if (activeReportTab === 'heatmap') {
+    renderTrendChart();
   }
 }
 
+// --- GitHub-Style Daily Expense Activity Heatmap ---
+function renderHeatmapChart() {
+  const container = document.getElementById('heatmap-grid-container');
+  if (!container) return;
+
+  const today = new Date();
+  const endDate = new Date(today);
+  // Align to end of current week (Saturday)
+  const dayOfWeek = endDate.getDay();
+  endDate.setDate(endDate.getDate() + (6 - dayOfWeek));
+
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - (52 * 7 - 1)); // 364 days (52 weeks)
+
+  // Map expenses per YYYY-MM-DD
+  const expenseByDate = {};
+  let totalYearExpense = 0;
+  let activeDaysCount = 0;
+
+  state.transactions.forEach(tx => {
+    if (tx.type === 'expense' && tx.date) {
+      const dateStr = tx.date;
+      const val = parseFloat(tx.amount) || 0;
+      if (!expenseByDate[dateStr]) {
+        expenseByDate[dateStr] = { total: 0, count: 0 };
+      }
+      expenseByDate[dateStr].total += val;
+      expenseByDate[dateStr].count += 1;
+    }
+  });
+
+  // Calculate day cells data
+  let maxDailyExpense = 0;
+  const daysArray = [];
+  const curr = new Date(startDate);
+
+  while (curr <= endDate) {
+    const yyyy = curr.getFullYear();
+    const mm = String(curr.getMonth() + 1).padStart(2, '0');
+    const dd = String(curr.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+
+    const data = expenseByDate[dateStr] || { total: 0, count: 0 };
+    if (data.total > 0) {
+      activeDaysCount++;
+      totalYearExpense += data.total;
+      if (data.total > maxDailyExpense) maxDailyExpense = data.total;
+    }
+
+    daysArray.push({
+      dateStr: dateStr,
+      dateObj: new Date(curr),
+      total: data.total,
+      count: data.count
+    });
+
+    curr.setDate(curr.getDate() + 1);
+  }
+
+  // Update header stats
+  const activeDaysEl = document.getElementById('heatmap-active-days');
+  const totalYearEl = document.getElementById('heatmap-total-year');
+  if (activeDaysEl) activeDaysEl.innerText = activeDaysCount;
+  if (totalYearEl) totalYearEl.innerText = formatCurrency(totalYearExpense);
+
+  // Group into weeks (52 columns of 7 days)
+  const weeks = [];
+  for (let i = 0; i < daysArray.length; i += 7) {
+    weeks.push(daysArray.slice(i, i + 7));
+  }
+
+  // Month label positions
+  const monthLabels = [];
+  let currentMonthName = '';
+  weeks.forEach((week, weekIdx) => {
+    const firstDayOfWeek = week[0];
+    if (firstDayOfWeek) {
+      const mName = firstDayOfWeek.dateObj.toLocaleString('default', { month: 'short' });
+      if (mName !== currentMonthName) {
+        currentMonthName = mName;
+        monthLabels.push({ name: mName, weekIndex: weekIdx });
+      }
+    }
+  });
+
+  // Build Grid HTML
+  let html = '';
+
+  // Month labels row
+  html += `<div class="heatmap-months-header">`;
+  monthLabels.forEach(m => {
+    const leftPx = m.weekIndex * 14; // 11px tile width + 3px gap
+    html += `<span class="heatmap-month-label" style="left: ${leftPx}px">${m.name}</span>`;
+  });
+  html += `</div>`;
+
+  // Main grid layout
+  html += `<div class="heatmap-main-grid">`;
+  
+  // Weekday column
+  html += `<div class="heatmap-weekdays-col">`;
+  html += `<span></span>`; // Sun
+  html += `<span>Mon</span>`;
+  html += `<span></span>`; // Tue
+  html += `<span>Wed</span>`;
+  html += `<span></span>`; // Thu
+  html += `<span>Fri</span>`;
+  html += `<span></span>`; // Sat
+  html += `</div>`;
+
+  // Weeks grid
+  html += `<div class="heatmap-weeks-wrapper">`;
+  weeks.forEach(week => {
+    html += `<div class="heatmap-week-col">`;
+    week.forEach(day => {
+      let level = 0;
+      if (day.total > 0) {
+        if (maxDailyExpense > 0) {
+          const ratio = day.total / maxDailyExpense;
+          if (ratio <= 0.25) level = 1;
+          else if (ratio <= 0.5) level = 2;
+          else if (ratio <= 0.75) level = 3;
+          else level = 4;
+        } else {
+          level = 1;
+        }
+      }
+
+      const formattedDateStr = day.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const tooltipText = day.total > 0 
+        ? `${formatCurrency(day.total)} spent on ${formattedDateStr} (${day.count} transaction${day.count > 1 ? 's' : ''})`
+        : `No expenses logged on ${formattedDateStr}`;
+
+      html += `<div class="heatmap-tile level-${level}" title="${tooltipText}"></div>`;
+    });
+    html += `</div>`;
+  });
+  html += `</div>`; // end weeks-wrapper
+
+  html += `</div>`; // end main-grid
+
+  container.innerHTML = html;
+}
+
+// --- Dedicated Monthly Expenses Graph ---
 function renderMonthlyExpenseChart() {
   const canvas = document.getElementById('monthlyExpenseChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  if (monthlyExpenseChartInstance) monthlyExpenseChartInstance.destroy();
-
-  const monthMap = {};
+  // Aggregate expenses per YYYY-MM
+  const monthlyExpenses = {};
   state.transactions.forEach(tx => {
     if (tx.type === 'expense' && tx.date) {
       const monthKey = tx.date.substring(0, 7);
-      monthMap[monthKey] = (monthMap[monthKey] || 0) + parseFloat(tx.amount);
+      monthlyExpenses[monthKey] = (monthlyExpenses[monthKey] || 0) + parseFloat(tx.amount);
     }
   });
 
-  let labels = Object.keys(monthMap).sort();
-  let data = labels.map(k => monthMap[k]);
-
-  if (labels.length === 0) {
-    labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
-    data = [1200, 1900, 1500, 2100, 1800, 2400, 3100, 2980];
+  let sortedMonths = Object.keys(monthlyExpenses).sort();
+  const currentMonthKey = new Date().toISOString().substring(0, 7);
+  if (!sortedMonths.includes(currentMonthKey)) {
+    sortedMonths.push(currentMonthKey);
+    sortedMonths.sort();
   }
+
+  const dataValues = sortedMonths.map(m => monthlyExpenses[m] || 0);
+  const monthLabels = sortedMonths.map(m => {
+    const [year, month] = m.split('-');
+    const date = new Date(year, month - 1);
+    return date.toLocaleString('default', { month: 'short', year: '2-digit' });
+  });
+
+  if (monthlyExpenseChartInstance) {
+    monthlyExpenseChartInstance.destroy();
+  }
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, 'rgba(244, 63, 94, 0.35)');
+  gradient.addColorStop(1, 'rgba(244, 63, 94, 0.0)');
 
   monthlyExpenseChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: labels,
+      labels: monthLabels,
       datasets: [{
-        label: 'Expenses (₹)',
-        data: data,
-        borderColor: '#00dbe9',
-        borderWidth: 2,
-        backgroundColor: 'rgba(0, 219, 233, 0.12)',
+        label: 'Monthly Spent',
+        data: dataValues,
+        borderColor: '#f43f5e',
+        borderWidth: 3,
+        backgroundColor: gradient,
         fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#00dbe9',
-        pointRadius: 4
+        tension: 0.35,
+        pointBackgroundColor: '#f43f5e',
+        pointBorderColor: '#ffffff',
+        pointRadius: 5,
+        pointHoverRadius: 7
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return ` Total Spent: ₹${context.raw.toFixed(2)}`;
+            }
+          }
+        }
+      },
       scales: {
-        x: { ticks: { color: '#849495' }, grid: { display: false } },
-        y: { ticks: { color: '#849495', callback: val => '₹' + val }, grid: { color: 'rgba(132, 148, 149, 0.1)' } }
+        x: { ticks: { color: '#64748b' }, grid: { display: false } },
+        y: {
+          ticks: { color: '#64748b', callback: value => '₹' + value },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        }
       }
     }
   });
 }
 
-function renderCategoryChart() {
-  const canvas = document.getElementById('categoryChart');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-
-  if (categoryChartInstance) categoryChartInstance.destroy();
-
-  const catMap = {};
-  state.transactions.forEach(tx => {
-    if (tx.type === 'expense') {
-      catMap[tx.category] = (catMap[tx.category] || 0) + parseFloat(tx.amount);
-    }
-  });
-
-  let labels = Object.keys(catMap);
-  let data = Object.values(catMap);
-
-  if (labels.length === 0) {
-    labels = ['Food', 'Fuel', 'Shop', 'Housing', 'Transportation'];
-    data = [450, 250, 150, 800, 150];
-  }
-
-  const colors = labels.map(c => CATEGORY_MAP[c] ? CATEGORY_MAP[c].color : '#849495');
-
-  categoryChartInstance = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: data,
-        backgroundColor: colors,
-        borderWidth: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { color: '#e4e1e9', font: { family: 'Geist', size: 11 } } } },
-      cutout: '70%'
-    }
-  });
-}
-
+// --- Dedicated Weekly Expenses Graph ---
 function renderWeeklyExpenseChart() {
   const canvas = document.getElementById('weeklyExpenseChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  if (weeklyExpenseChartInstance) weeklyExpenseChartInstance.destroy();
+  // Compute Monday date of current week
+  const today = new Date();
+  const day = today.getDay();
+  const diffToMon = (day === 0 ? -6 : 1 - day);
+  const monDate = new Date(today);
+  monDate.setDate(today.getDate() + diffToMon);
 
+  const daysList = [];
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const dayData = [120, 240, 180, 310, 290, 450, 190];
+  const dayValues = [0, 0, 0, 0, 0, 0, 0];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monDate);
+    d.setDate(monDate.getDate() + i);
+    daysList.push(getLocalDateString(d));
+  }
+
+  state.transactions.forEach(tx => {
+    if (tx.type === 'expense' && tx.date) {
+      const idx = daysList.indexOf(tx.date);
+      if (idx !== -1) {
+        dayValues[idx] += parseFloat(tx.amount) || 0;
+      }
+    }
+  });
+
+  if (weeklyExpenseChartInstance) {
+    weeklyExpenseChartInstance.destroy();
+  }
 
   weeklyExpenseChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: dayLabels,
       datasets: [{
-        label: 'Daily Spent (₹)',
-        data: dayData,
-        backgroundColor: '#d05bff',
+        label: 'Daily Expense (₹)',
+        data: dayValues,
+        backgroundColor: '#10b981',
+        hoverBackgroundColor: '#34d399',
         borderRadius: 6
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return ` Spent: ₹${context.raw.toFixed(2)}`;
+            }
+          }
+        }
+      },
       scales: {
-        x: { ticks: { color: '#849495' }, grid: { display: false } },
-        y: { ticks: { color: '#849495', callback: val => '₹' + val }, grid: { color: 'rgba(132, 148, 149, 0.1)' } }
+        x: { ticks: { color: '#64748b' }, grid: { display: false } },
+        y: {
+          ticks: { color: '#64748b', callback: val => '₹' + val },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        }
       }
     }
   });
 }
 
-function renderMethodChart() {
-  const canvas = document.getElementById('methodChart');
+function renderWeeklyCategoryChart() {
+  const canvas = document.getElementById('weeklyCategoryChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  if (methodChartInstance) methodChartInstance.destroy();
+  const today = new Date();
+  const day = today.getDay();
+  const diffToMon = (day === 0 ? -6 : 1 - day);
+  const monDate = new Date(today);
+  monDate.setDate(today.getDate() + diffToMon);
 
-  methodChartInstance = new Chart(ctx, {
+  const sunDate = new Date(monDate);
+  sunDate.setDate(monDate.getDate() + 6);
+
+  const monStr = getLocalDateString(monDate);
+  const sunStr = getLocalDateString(sunDate);
+
+  const weekCategoryMap = {};
+  state.transactions.forEach(tx => {
+    if (tx.type === 'expense' && tx.date && tx.date >= monStr && tx.date <= sunStr) {
+      weekCategoryMap[tx.category] = (weekCategoryMap[tx.category] || 0) + parseFloat(tx.amount);
+    }
+  });
+
+  const labels = Object.keys(weekCategoryMap);
+  const dataValues = Object.values(weekCategoryMap);
+  const backgroundColors = labels.map(cat => (CATEGORY_MAP[cat] ? CATEGORY_MAP[cat].color : '#64748b'));
+
+  if (weeklyCategoryChartInstance) {
+    weeklyCategoryChartInstance.destroy();
+  }
+
+  if (labels.length === 0) {
+    weeklyCategoryChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['No Weekly Expenses'],
+        datasets: [{ data: [1], backgroundColor: ['rgba(255,255,255,0.05)'] }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+    return;
+  }
+
+  weeklyCategoryChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Debit Card', 'Credit Card', 'Bank Transfer / UPI', 'Cash'],
+      labels: labels,
       datasets: [{
-        data: [60, 25, 10, 5],
-        backgroundColor: ['#00dbe9', '#d05bff', '#00ff9d', '#ffb700'],
-        borderWidth: 0
+        data: dataValues,
+        backgroundColor: backgroundColors,
+        borderWidth: 2,
+        borderColor: '#111726'
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { color: '#e4e1e9' } } },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } }
+        }
+      },
+      cutout: '70%'
+    }
+  });
+}
+
+// --- Payment Method Breakdown Graph ---
+function renderMethodChart() {
+  const canvas = document.getElementById('methodChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const methodMap = {};
+  state.transactions.forEach(tx => {
+    if (tx.type === 'expense') {
+      const m = tx.method || 'Other';
+      methodMap[m] = (methodMap[m] || 0) + parseFloat(tx.amount);
+    }
+  });
+
+  const labels = Object.keys(methodMap);
+  const dataValues = Object.values(methodMap);
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+
+  if (methodChartInstance) {
+    methodChartInstance.destroy();
+  }
+
+  methodChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels.length ? labels : ['No Data'],
+      datasets: [{
+        data: dataValues.length ? dataValues : [1],
+        backgroundColor: colors.slice(0, labels.length || 1),
+        borderWidth: 2,
+        borderColor: '#111726'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ₹${ctx.raw.toFixed(2)}` } }
+      },
       cutout: '65%'
     }
   });
 }
 
-function renderHeatmapChart() {
-  const container = document.getElementById('heatmap-grid-container');
-  if (!container) return;
+// --- Cumulative Net Balance Trajectory Graph ---
+function renderBalanceTrendChart() {
+  const canvas = document.getElementById('balanceTrendChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
 
-  let html = `<div class="flex gap-1 flex-wrap p-2 bg-surface-container-lowest/50 rounded-lg">`;
-  for (let i = 0; i < 90; i++) {
-    const level = Math.floor(Math.random() * 5);
-    html += `<div class="heatmap-tile level-${level}" title="Day ${i + 1}"></div>`;
+  const sortedTx = [...state.transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  let cumulativeBalance = 0;
+  const dateMap = {};
+
+  sortedTx.forEach(tx => {
+    const val = parseFloat(tx.amount) || 0;
+    if (tx.type === 'income') cumulativeBalance += val;
+    else cumulativeBalance -= val;
+    dateMap[tx.date] = cumulativeBalance;
+  });
+
+  const sortedDates = Object.keys(dateMap).sort();
+  const balanceValues = sortedDates.map(d => dateMap[d]);
+  const dateLabels = sortedDates.map(d => formatDate(d));
+
+  if (balanceTrendChartInstance) {
+    balanceTrendChartInstance.destroy();
   }
-  html += `</div>`;
-  container.innerHTML = html;
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+  gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+  balanceTrendChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dateLabels.length ? dateLabels : ['No Data'],
+      datasets: [{
+        label: 'Net Balance',
+        data: balanceValues.length ? balanceValues : [0],
+        borderColor: '#10b981',
+        borderWidth: 3,
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#10b981',
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` Net Balance: ₹${ctx.raw.toFixed(2)}` } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { display: false } },
+        y: { ticks: { color: '#64748b', callback: val => '₹' + val }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+      }
+    }
+  });
 }
 
-// --- Utilities ---
-function resetAllData() {
-  if (confirm('Reset ledger data to defaults?')) {
-    seedDemoData(true);
+function renderCategoryChart() {
+  const ctx = document.getElementById('categoryChart').getContext('2d');
+  
+  // Aggregate expenses by category
+  const expenseByCategory = {};
+  state.transactions
+    .filter(tx => tx.type === 'expense')
+    .forEach(tx => {
+      expenseByCategory[tx.category] = (expenseByCategory[tx.category] || 0) + parseFloat(tx.amount);
+    });
+
+  const labels = Object.keys(expenseByCategory);
+  const dataValues = Object.values(expenseByCategory);
+  const backgroundColors = labels.map(cat => (CATEGORY_MAP[cat] ? CATEGORY_MAP[cat].color : '#64748b'));
+
+  if (categoryChartInstance) {
+    categoryChartInstance.destroy();
   }
+
+  if (labels.length === 0) {
+    categoryChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['No Expense Data'],
+        datasets: [{ data: [1], backgroundColor: ['rgba(255,255,255,0.05)'] }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+    return;
+  }
+
+  categoryChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: dataValues,
+        backgroundColor: backgroundColors,
+        borderWidth: 2,
+        borderColor: '#111726'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return ` ${context.label}: ₹${context.raw.toFixed(2)}`;
+            }
+          }
+        }
+      },
+      cutout: '70%'
+    }
+  });
+}
+
+function renderTrendChart() {
+  const ctx = document.getElementById('trendChart').getContext('2d');
+
+  // Group transactions by date/month
+  const monthlyData = {};
+  state.transactions.forEach(tx => {
+    const monthKey = tx.date.substring(0, 7); // YYYY-MM
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { income: 0, expense: 0 };
+    }
+    if (tx.type === 'income') {
+      monthlyData[monthKey].income += parseFloat(tx.amount);
+    } else {
+      monthlyData[monthKey].expense += parseFloat(tx.amount);
+    }
+  });
+
+  const sortedMonths = Object.keys(monthlyData).sort();
+  const incomeSeries = sortedMonths.map(m => monthlyData[m].income);
+  const expenseSeries = sortedMonths.map(m => monthlyData[m].expense);
+  const monthLabels = sortedMonths.map(m => {
+    const [year, month] = m.split('-');
+    const date = new Date(year, month - 1);
+    return date.toLocaleString('default', { month: 'short', year: '2-digit' });
+  });
+
+  if (trendChartInstance) {
+    trendChartInstance.destroy();
+  }
+
+  trendChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: monthLabels.length ? monthLabels : ['No Data'],
+      datasets: [
+        {
+          label: 'Income',
+          data: incomeSeries.length ? incomeSeries : [0],
+          backgroundColor: '#10b981',
+          borderRadius: 6
+        },
+        {
+          label: 'Expenses',
+          data: expenseSeries.length ? expenseSeries : [0],
+          backgroundColor: '#f43f5e',
+          borderRadius: 6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { display: false } },
+        y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+      }
+    }
+  });
+}
+
+// --- Event Listeners Setup ---
+// --- Event Listeners Setup ---
+function safeAddListener(id, event, handler) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(event, handler);
+}
+
+let isSubmittingTx = false;
+
+function initEventListeners() {
+  safeAddListener('btn-add-transaction', 'click', () => openTransactionModal());
+  safeAddListener('btn-close-modal', 'click', closeTransactionModal);
+  safeAddListener('btn-cancel-modal', 'click', closeTransactionModal);
+
+  safeAddListener('btn-close-savings-modal', 'click', closeSavingsModal);
+  safeAddListener('btn-cancel-savings-modal', 'click', closeSavingsModal);
+
+  safeAddListener('search-input', 'input', renderTransactionsTable);
+  safeAddListener('filter-type', 'change', renderTransactionsTable);
+  safeAddListener('filter-category', 'change', renderTransactionsTable);
+  safeAddListener('filter-sort', 'change', renderTransactionsTable);
+
+  // Desktop Sidebar Nav Handlers
+  safeAddListener('nav-btn-dashboard', 'click', () => { switchReportTab('monthly'); window.scrollTo({top:0, behavior:'smooth'}); });
+  safeAddListener('nav-btn-cloud-sync', 'click', openVaultModal);
+  safeAddListener('nav-btn-transactions', 'click', () => document.getElementById('transactions-section')?.scrollIntoView({behavior:'smooth'}));
+  safeAddListener('nav-btn-savings', 'click', openSavingsModal);
+  safeAddListener('nav-btn-admin', 'click', toggleAdminMode);
+  safeAddListener('nav-btn-vault', 'click', openVaultModal);
+  safeAddListener('nav-btn-reset', 'click', resetAllData);
+
+  // Mobile Bottom Nav Handlers
+  safeAddListener('mnav-monthly', 'click', () => switchReportTab('monthly'));
+  safeAddListener('mnav-weekly', 'click', () => switchReportTab('weekly'));
+  safeAddListener('mnav-database', 'click', () => switchReportTab('database'));
+  safeAddListener('mnav-heatmap', 'click', () => switchReportTab('heatmap'));
+
+  // Header Handlers
+  safeAddListener('btn-admin-login', 'click', toggleAdminMode);
+  safeAddListener('btn-sync-now', 'click', syncFromCloudDatabase);
+
+  safeAddListener('btn-reset-data', 'click', resetAllData);
+  safeAddListener('btn-demo-data', 'click', () => seedDemoData(true));
+}
+
+// --- Modal Handlers ---
+function openTransactionModal(txId = null) {
+  isSubmittingTx = false;
+  const modal = document.getElementById('transaction-modal');
+  const title = document.getElementById('modal-title');
+  const form = document.getElementById('transaction-form');
+
+  form.reset();
+  state.editingTxId = txId;
+
+  if (txId) {
+    const tx = state.transactions.find(t => t.id === txId);
+    if (tx) {
+      title.innerText = 'Edit Transaction';
+      document.getElementById('tx-id').value = tx.id;
+      document.getElementById('tx-amount').value = tx.amount;
+      document.getElementById('tx-date').value = tx.date;
+      document.getElementById('tx-category').value = tx.category;
+      document.getElementById('tx-method').value = tx.method;
+      document.getElementById('tx-note').value = tx.note;
+      setFormType(tx.type);
+    }
+  } else {
+    title.innerText = 'Add Transaction';
+    document.getElementById('tx-id').value = '';
+    document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+    setFormType('expense');
+  }
+
+  if (modal) {
+    modal.classList.add('active');
+  }
+}
+
+function closeTransactionModal() {
+  const modal = document.getElementById('transaction-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+  state.editingTxId = null;
+  isSubmittingTx = false;
+}
+
+function openSavingsModal() {
+  const savingsInput = document.getElementById('monthly-savings-input');
+  if (savingsInput) savingsInput.value = state.monthlySavings || 0;
+
+  const modal = document.getElementById('savings-modal');
+  if (modal) {
+    modal.classList.add('active');
+  }
+
+  setTimeout(() => {
+    if (savingsInput) {
+      savingsInput.focus();
+      savingsInput.select();
+    }
+  }, 100);
+}
+
+function closeSavingsModal() {
+  const modal = document.getElementById('savings-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+function setFormType(type) {
+  state.currentFormType = type;
+  const btnExpense = document.getElementById('type-btn-expense');
+  const btnIncome = document.getElementById('type-btn-income');
+  const catSelect = document.getElementById('tx-category');
+
+  if (type === 'expense') {
+    btnExpense.classList.add('active');
+    btnIncome.classList.remove('active');
+    if (catSelect.value === 'Income') catSelect.value = 'Food';
+  } else {
+    btnIncome.classList.add('active');
+    btnExpense.classList.remove('active');
+    catSelect.value = 'Income';
+  }
+}
+
+// --- Transaction Form Actions ---
+function handleTransactionFormSubmit(e) {
+  if (e) e.preventDefault();
+  if (isSubmittingTx) return;
+  isSubmittingTx = true;
+
+  const id = document.getElementById('tx-id').value || `tx-${Date.now()}`;
+  const amount = parseFloat(document.getElementById('tx-amount').value);
+  const date = document.getElementById('tx-date').value;
+  const category = document.getElementById('tx-category').value;
+  const method = document.getElementById('tx-method').value;
+  const note = document.getElementById('tx-note').value;
+  const type = state.currentFormType;
+
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Please enter a valid positive amount!', 'danger');
+    isSubmittingTx = false;
+    return;
+  }
+
+  const newTx = { id, type, amount, date, category, method, note };
+
+  if (state.editingTxId) {
+    const idx = state.transactions.findIndex(t => t.id === state.editingTxId);
+    if (idx !== -1) state.transactions[idx] = newTx;
+    showToast('Transaction updated successfully!', 'success');
+  } else {
+    state.transactions.unshift(newTx);
+    showToast('Transaction saved!', 'success');
+  }
+
+  saveToLocalStorage();
+  closeTransactionModal();
+  renderApp();
+}
+
+function handleSavingsFormSubmit(e) {
+  e.preventDefault();
+  const val = parseFloat(document.getElementById('monthly-savings-input').value);
+
+  if (!isNaN(val) && val >= 0) {
+    state.monthlySavings = val;
+    saveToLocalStorage();
+    closeSavingsModal();
+    renderApp();
+    showToast(`Updated monthly savings to ${formatCurrency(state.monthlySavings)}!`, 'success');
+  }
+}
+
+function openVaultModal() {
+  const gistIdInput = document.getElementById('gist-id-input');
+  const gistTokenInput = document.getElementById('gist-token-input');
+
+  if (gistIdInput) gistIdInput.value = state.gistId || '4e9d3322f1da9f4a2ed6d79374937944';
+  if (gistTokenInput) gistTokenInput.value = state.gistToken || '';
+
+  const modal = document.getElementById('vault-modal');
+  if (modal) {
+    modal.classList.add('active');
+  }
+
+  setTimeout(() => {
+    if (gistIdInput) {
+      gistIdInput.focus();
+      gistIdInput.select();
+    }
+  }, 100);
+}
+
+function closeVaultModal() {
+  const modal = document.getElementById('vault-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+function handleVaultFormSubmit(e) {
+  e.preventDefault();
+  const gistIdVal = document.getElementById('gist-id-input').value.trim();
+  const gistTokenVal = document.getElementById('gist-token-input').value.trim();
+
+  if (gistIdVal) {
+    state.gistId = gistIdVal;
+    state.gistToken = gistTokenVal;
+    localStorage.setItem(GIST_ID_STORAGE, state.gistId);
+    if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
+
+    closeVaultModal();
+    syncFromCloudDatabase();
+    showToast('Connected to GitHub Gist Cloud Database!', 'success');
+  }
+}
+
+// --- Admin Mode Handlers ---
+function toggleAdminMode() {
+  if (state.isAdminLoggedIn) {
+    adminLogout();
+  } else {
+    openAdminModal();
+  }
+}
+
+function openAdminModal() {
+  const input = document.getElementById('admin-pin-input');
+  if (input) input.value = '';
+
+  const modal = document.getElementById('admin-modal');
+  if (modal) {
+    modal.classList.add('active');
+  }
+
+  setTimeout(() => {
+    if (input) input.focus();
+  }, 100);
+}
+
+function closeAdminModal() {
+  const modal = document.getElementById('admin-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+function handleAdminFormSubmit(e) {
+  e.preventDefault();
+  const inputPin = document.getElementById('admin-pin-input').value.trim();
+  if (inputPin === state.adminPin) {
+    state.isAdminLoggedIn = true;
+    sessionStorage.setItem(ADMIN_SESSION_STORAGE, 'true');
+    closeAdminModal();
+    updateAdminUiState();
+    renderApp();
+    showToast('Admin Mode Unlocked! You can now edit transactions & savings.', 'success');
+  } else {
+    showToast('Invalid Admin PIN! Access denied.', 'danger');
+  }
+}
+
+function adminLogout() {
+  state.isAdminLoggedIn = false;
+  sessionStorage.removeItem(ADMIN_SESSION_STORAGE);
+  updateAdminUiState();
+  renderApp();
+  showToast('Locked back to Public Report Mode.', 'warning');
+}
+
+function updateAdminUiState() {
+  document.body.classList.toggle('admin-mode', state.isAdminLoggedIn);
+  
+  const textEl = document.getElementById('admin-btn-text');
+  const iconEl = document.getElementById('admin-icon');
+
+  if (textEl && iconEl) {
+    if (state.isAdminLoggedIn) {
+      textEl.innerText = 'Lock Admin';
+      iconEl.className = 'fa-solid fa-lock-open';
+    } else {
+      textEl.innerText = 'Admin Login';
+      iconEl.className = 'fa-solid fa-lock';
+    }
+  }
+}
+
+function handleSavingsCardClick() {
+  if (state.isAdminLoggedIn) {
+    openSavingsModal();
+  } else {
+    showToast('Public Report View: Login as Admin to edit Monthly Savings.', 'warning');
+  }
+}
+
+// --- Quick Add Bar Actions ---
+function handleQuickAddSubmit(e) {
+  if (e) e.preventDefault();
+  if (!state.isAdminLoggedIn) {
+    showToast('Public Report View: Login as Admin to add transactions.', 'warning');
+    return;
+  }
+
+  const amount = parseFloat(document.getElementById('quick-amount').value);
+  const type = document.getElementById('quick-type').value;
+  const category = document.getElementById('quick-category').value;
+  const note = document.getElementById('quick-note').value;
+  const date = new Date().toISOString().split('T')[0];
+
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Please enter a valid positive amount!', 'danger');
+    return;
+  }
+
+  const newTx = {
+    id: `tx-${Date.now()}`,
+    type: type,
+    amount: amount,
+    date: date,
+    category: category,
+    method: type === 'income' ? 'Bank Transfer' : 'Debit Card',
+    note: note
+  };
+
+  state.transactions.unshift(newTx);
+  document.getElementById('quick-add-form').reset();
+  saveToLocalStorage();
+  renderApp();
+  showToast(`Added ${type === 'income' ? '+' : '-'}${formatCurrency(amount)} (${category})!`, 'success');
+}
+
+function quickAddPreset(category, defaultNote, type) {
+  if (!state.isAdminLoggedIn) {
+    openAdminModal();
+    return;
+  }
+
+  const catSelect = document.getElementById('quick-category');
+  const typeSelect = document.getElementById('quick-type');
+  const noteInput = document.getElementById('quick-note');
+  const amountInput = document.getElementById('quick-amount');
+
+  if (catSelect) catSelect.value = category;
+  if (typeSelect) typeSelect.value = type;
+  if (noteInput) noteInput.value = defaultNote;
+
+  if (amountInput) {
+    amountInput.focus();
+  }
+}
+
+window.openTransactionModal = openTransactionModal;
+window.closeTransactionModal = closeTransactionModal;
+window.handleTransactionFormSubmit = handleTransactionFormSubmit;
+window.setFormType = setFormType;
+window.openSavingsModal = openSavingsModal;
+window.closeSavingsModal = closeSavingsModal;
+window.handleSavingsFormSubmit = handleSavingsFormSubmit;
+window.openVaultModal = openVaultModal;
+window.closeVaultModal = closeVaultModal;
+window.handleVaultFormSubmit = handleVaultFormSubmit;
+window.restartMonthlySpent = restartMonthlySpent;
+window.handleMonthFilterChange = handleMonthFilterChange;
+window.switchReportTab = switchReportTab;
+window.toggleAdminMode = toggleAdminMode;
+window.openAdminModal = openAdminModal;
+window.closeAdminModal = closeAdminModal;
+window.handleAdminFormSubmit = handleAdminFormSubmit;
+window.adminLogout = adminLogout;
+window.handleSavingsCardClick = handleSavingsCardClick;
+window.handleQuickAddSubmit = handleQuickAddSubmit;
+window.quickAddPreset = quickAddPreset;
+window.syncFromCloudDatabase = syncFromCloudDatabase;
+window.syncToCloudDatabase = syncToCloudDatabase;
+window.openBudgetModal = openSavingsModal;
+window.resetAllData = resetAllData;
+
+window.editTransaction = function(id) {
+  openTransactionModal(id);
+};
+
+window.deleteTransaction = function(id) {
+  if (confirm('Are you sure you want to delete this transaction item?')) {
+    state.transactions = state.transactions.filter(t => t.id !== id);
+    saveToLocalStorage();
+    renderApp();
+    showToast('Transaction deleted.', 'warning');
+  }
+};
+
+// --- Export & Import Utilities ---
+function exportJSONBackup() {
+  const payload = {
+    transactions: state.transactions,
+    monthlyBudget: state.monthlyBudget,
+    exportDate: new Date().toISOString()
+  };
+
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute('href', dataStr);
+  downloadAnchor.setAttribute('download', `expense_tracker_backup_${new Date().toISOString().split('T')[0]}.json`);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+
+  showToast('JSON Backup downloaded!', 'success');
+}
+
+function exportCSV() {
+  if (state.transactions.length === 0) {
+    showToast('No transaction data to export.', 'warning');
+    return;
+  }
+
+  let csvContent = 'data:text/csv;charset=utf-8,ID,Date,Type,Category,Note,Method,Amount\n';
+
+  state.transactions.forEach(tx => {
+    const row = [
+      tx.id,
+      tx.date,
+      tx.type,
+      `"${tx.category}"`,
+      `"${tx.note.replace(/"/g, '""')}"`,
+      `"${tx.method}"`,
+      tx.amount
+    ].join(',');
+    csvContent += row + '\n';
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `expenses_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  showToast('CSV Spreadsheet downloaded!', 'success');
+}
+
+function handleImportJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    try {
+      const data = JSON.parse(event.target.result);
+      if (Array.isArray(data.transactions)) {
+        state.transactions = data.transactions;
+        if (data.monthlyBudget) state.monthlyBudget = data.monthlyBudget;
+        saveToLocalStorage();
+        renderApp();
+        showToast('Successfully imported transactions backup!', 'success');
+      } else {
+        showToast('Invalid backup file format.', 'danger');
+      }
+    } catch (err) {
+      showToast('Error reading file. Ensure it is valid JSON.', 'danger');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetAllData() {
+  if (confirm('Are you sure you want to delete all saved transactions and reset data?')) {
+    state.transactions = [];
+    state.monthlySavings = 0;
+    saveToLocalStorage();
+    renderApp();
+    showToast('All local expense data cleared.', 'warning');
+  }
+}
+
+// --- Helper Utilities ---
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amount);
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function escapeHtml(str) {
-  if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function showToast(message, type = 'info') {
+  if (window.AndroidNative) {
+    try {
+      if (typeof window.AndroidNative.showToast === 'function') {
+        window.AndroidNative.showToast(message);
+      }
+      if (typeof window.AndroidNative.vibrate === 'function') {
+        window.AndroidNative.vibrate(35);
+      }
+    } catch (e) {}
+  }
+
   const container = document.getElementById('toast-container');
   if (!container) return;
   const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerText = message;
+  toast.className = `toast`;
+
+  let icon = 'fa-circle-info';
+  if (type === 'success') icon = 'fa-circle-check';
+  if (type === 'danger') icon = 'fa-circle-exclamation';
+  if (type === 'warning') icon = 'fa-triangle-exclamation';
+
+  toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
   container.appendChild(toast);
+
   setTimeout(() => {
     toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s ease';
     setTimeout(() => toast.remove(), 300);
-  }, 2500);
+  }, 3000);
 }
 
-// Global Exports
-window.appendNum = appendNum;
-window.deleteNum = deleteNum;
-window.updateDisplay = updateDisplay;
-window.selectCategory = selectCategory;
-window.triggerSuccess = triggerSuccess;
-window.openTransactionModal = openTransactionModal;
-window.closeTransactionModal = closeTransactionModal;
-window.openProfileModal = openProfileModal;
-window.closeProfileModal = closeProfileModal;
-window.handleProfileSubmit = handleProfileSubmit;
-window.openEditModal = openEditModal;
-window.closeEditModal = closeEditModal;
-window.handleEditSubmit = handleEditSubmit;
-window.handleDeleteCurrentEditTx = handleDeleteCurrentEditTx;
-window.openAllTransactionsModal = openAllTransactionsModal;
-window.closeAllTransactionsModal = closeAllTransactionsModal;
-window.renderAllTransactionsList = renderAllTransactionsList;
-window.openSendModal = openSendModal;
-window.closeSendModal = closeSendModal;
-window.handleSendSubmit = handleSendSubmit;
-window.openReceiveModal = openReceiveModal;
-window.closeReceiveModal = closeReceiveModal;
-window.handleReceiveSubmit = handleReceiveSubmit;
+// Global Window Exports for Gist Sync & Restore
+window.syncToGitHubGist = syncToGitHubGist;
+window.restoreFromGist = restoreFromGist;
+window.syncFromCloudDatabase = syncFromCloudDatabase;
+window.syncToCloudDatabase = syncToCloudDatabase;
 window.openVaultModal = openVaultModal;
 window.closeVaultModal = closeVaultModal;
 window.handleVaultFormSubmit = handleVaultFormSubmit;
-window.openSavingsModal = openSavingsModal;
-window.switchReportTab = switchReportTab;
-window.toggleViewAllTransactions = toggleViewAllTransactions;
-window.resetAllData = resetAllData;
-window.syncFromCloudDatabase = syncFromCloudDatabase;

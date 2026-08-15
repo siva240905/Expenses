@@ -82,6 +82,62 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API Route: /api/gist-proxy (Secure GitHub Gist API Proxy)
+  if (req.url.startsWith('/api/gist-proxy')) {
+    const https = require('https');
+    const urlParts = req.url.split('?');
+    const queryParams = new URLSearchParams(urlParts[1] || '');
+    const targetGistId = queryParams.get('gistId') || '';
+    
+    const githubToken = process.env.GITHUB_TOKEN || req.headers['x-github-token'] || req.headers['authorization'];
+    
+    let gistUrlPath = '/gists';
+    if (targetGistId) {
+      gistUrlPath += '/' + targetGistId;
+    }
+    
+    const options = {
+      hostname: 'api.github.com',
+      path: gistUrlPath,
+      method: req.method,
+      headers: {
+        'User-Agent': 'CoinFlow-ExpenseTracker-App',
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      }
+    };
+
+    if (githubToken) {
+      options.headers['Authorization'] = githubToken.startsWith('Bearer ') || githubToken.startsWith('token ')
+        ? githubToken
+        : `token ${githubToken}`;
+    }
+
+    let reqBody = '';
+    req.on('data', chunk => { reqBody += chunk.toString(); });
+    req.on('end', () => {
+      const proxyReq = https.request(options, (proxyRes) => {
+        let resData = '';
+        proxyRes.on('data', chunk => { resData += chunk.toString(); });
+        proxyRes.on('end', () => {
+          res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+          res.end(resData);
+        });
+      });
+
+      proxyReq.on('error', (err) => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Gist proxy failed', message: err.message }));
+      });
+
+      if (['POST', 'PATCH', 'PUT'].includes(req.method) && reqBody) {
+        proxyReq.write(reqBody);
+      }
+      proxyReq.end();
+    });
+    return;
+  }
+
   // Static File Serving (Root / -> index.html, styles.css, app.js, etc.)
   let reqPath = req.url.split('?')[0];
   if (reqPath === '/') reqPath = '/index.html';
