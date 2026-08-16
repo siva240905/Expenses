@@ -359,16 +359,20 @@ async function syncToGitHubGist(manual = false) {
       lastSyncedAt: new Date().toISOString()
     };
 
-    const filesContent = {
-      'coin_flow_data.json': { content: JSON.stringify(payload, null, 2) },
-      'data.json': null,
-      'expenses.json': null
-    };
+    const isNewGist = !state.gistId;
+    const method = isNewGist ? 'POST' : 'PATCH';
 
-    let url = state.gistId 
-      ? `https://api.github.com/gists/${state.gistId}`
-      : `https://api.github.com/gists`;
-    let method = state.gistId ? 'PATCH' : 'POST';
+    const filesContent = isNewGist
+      ? { 'coin_flow_data.json': { content: JSON.stringify(payload, null, 2) } }
+      : {
+          'coin_flow_data.json': { content: JSON.stringify(payload, null, 2) },
+          'data.json': null,
+          'expenses.json': null
+        };
+
+    let url = isNewGist 
+      ? `https://api.github.com/gists`
+      : `https://api.github.com/gists/${state.gistId}`;
 
     let headers = {
       'Accept': 'application/vnd.github.v3+json',
@@ -386,7 +390,7 @@ async function syncToGitHubGist(manual = false) {
       }
     }
 
-    const bodyData = method === 'POST' 
+    const bodyData = isNewGist 
       ? JSON.stringify({ description: 'Coin Flow Expense Data Backup', public: false, files: filesContent })
       : JSON.stringify({ files: filesContent });
 
