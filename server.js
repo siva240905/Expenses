@@ -142,14 +142,15 @@ const server = http.createServer((req, res) => {
   let reqPath = req.url.split('?')[0];
   if (reqPath === '/') reqPath = '/index.html';
 
-  const filePath = path.join(__dirname, reqPath);
+  const baseDir = fs.existsSync(path.join(__dirname, 'dist', 'index.html')) ? path.join(__dirname, 'dist') : __dirname;
+  const filePath = path.join(baseDir, reqPath);
   const ext = path.extname(filePath);
   const contentType = MIME_TYPES[ext] || 'text/html; charset=utf-8';
 
   fs.readFile(filePath, (err, content) => {
     if (err) {
       // Fallback to index.html for SPA routing
-      fs.readFile(path.join(__dirname, 'index.html'), (err2, indexContent) => {
+      fs.readFile(path.join(baseDir, 'index.html'), (err2, indexContent) => {
         if (err2) {
           res.writeHead(404, { 'Content-Type': 'text/plain' });
           res.end('404 Not Found');
@@ -164,6 +165,7 @@ const server = http.createServer((req, res) => {
     }
   });
 });
+
 
 module.exports = server;
 

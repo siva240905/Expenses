@@ -1,90 +1,99 @@
-# 🪙 Coin Flow - Personal Finance Tracker
+# Coin Flow - Personal Expense Tracker (Android & Web)
 
-[![Vercel Deployment](https://img.shields.io/badge/Vercel-Live--App-00DDF7?style=for-the-badge&logo=vercel&logoColor=white)](https://expenses-mauve-xi.vercel.app)
-[![GitHub License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
-[![PWA Ready](https://img.shields.io/badge/PWA-1--Tap--Install-00FF9D?style=for-the-badge&logo=pwa&logoColor=white)](https://expenses-mauve-xi.vercel.app)
+A complete, modern, offline-first personal finance application with **bidirectional cloud synchronization** via **GitHub Gist**.
 
-> **Coin Flow** is a high-precision, neon-cyber personal expense tracker designed for web and mobile. Built with kinetic UI glassmorphism, instant PWA home-screen installation, and cloud database synchronization.
+## 🌟 Key Features
 
----
-
-## ⚡ Quick App Access & Installation
-
-### Option 1: 🌐 Live Web App (Instant Access)
-Open the live web application on any device:
-👉 **[https://expenses-mauve-xi.vercel.app](https://expenses-mauve-xi.vercel.app)**
+* **Offline-First Architecture**: Work seamlessly offline on Android and Web. Data is stored locally in Room DB (Android) & IndexedDB (Web) and syncs automatically when online.
+* **Shared GitHub Gist Data Store**: Expenses added from Android are immediately available on the Web app and vice versa.
+* **Bidirectional Sync & Conflict Resolution**: Merges local and remote data safely using `updatedAt` timestamps and unique transaction IDs (`tx-...`).
+* **Secure Token Management**: GitHub Personal Access Token (PAT) stored securely using Android KeyStore (`EncryptedSharedPreferences`) on Android and encrypted local storage on Web. Never plain text.
+* **Interactive Dashboard & Charts**: Category Pie/Doughnut charts, Daily Expense Bar charts, Income vs Expense Line charts, and Monthly Savings goals.
+* **Full Financial CRUD**: Add income & expenses, category management, date pickers, payment methods, search, filtering, and sorting.
+* **Backup & Restore**: Export complete financial state to JSON, import JSON backups, and backup/restore from Gist.
 
 ---
 
-### Option 2: 📲 Install Mobile App (PWA - Recommended)
-You can install **Coin Flow** directly as a native-feeling app on Android, iOS, Windows, or Mac without needing the Google Play Store:
+## 📁 Shared Gist JSON Schema (`coin_flow_data.json`)
 
-#### On Android (Google Chrome)
-1. Open [**`https://expenses-mauve-xi.vercel.app`**](https://expenses-mauve-xi.vercel.app) in Google Chrome.
-2. Tap the **Install** prompt banner at the top, or tap the 3-dots menu (`⋮`) in the top right.
-3. Select **Add to Home Screen** / **Install App**.
-
-#### On iPhone / iPad (Safari)
-1. Open [**`https://expenses-mauve-xi.vercel.app`**](https://expenses-mauve-xi.vercel.app) in Safari.
-2. Tap the **Share** icon (bottom bar).
-3. Scroll down and tap **Add to Home Screen**.
-
----
-
-### Option 3: 📦 Download Built Android APK from GitHub
-GitHub Actions automatically builds and publishes compiled `.apk` files on every commit:
-- 🚀 **[Download Latest APK Release](https://github.com/siva240905/Expenses/releases)**
-- ⚡ **[Download GitHub Actions Build Artifacts](https://github.com/siva240905/Expenses/actions)**
-
----
-
-### Option 4: 🤖 Android Studio Project (`/android`)
-The repository includes a complete native Android WebKit wrapper project:
-- **Location**: [`/android`](android)
-- **Source Code**: [`android/app/src/main/java/com/coinflow/app/MainActivity.kt`](android/app/src/main/java/com/coinflow/app/MainActivity.kt)
-- **Assets**: [`android/app/src/main/assets/`](android/app/src/main/assets/)
-
-To build an APK manually in Android Studio:
-```bash
-git clone https://github.com/siva240905/Expenses.git
-cd Expenses/android
-# Open in Android Studio and select Build > Build Bundle(s) / APK(s) > Build APK(s)
+```json
+{
+  "version": 1,
+  "user": {
+    "currency": "INR"
+  },
+  "transactions": [
+    {
+      "id": "tx-1786767545397",
+      "type": "expense",
+      "amount": 150,
+      "category": "Transportation",
+      "description": "Return to Home",
+      "date": "2026-08-15",
+      "time": "18:30",
+      "paymentMethod": "Bank Transfer",
+      "notes": "Return to Home",
+      "createdAt": "2026-08-15T18:30:00.000Z",
+      "updatedAt": "2026-08-15T18:30:00.000Z",
+      "isDeleted": false
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat_food",
+      "name": "Food",
+      "type": "expense",
+      "icon": "utensils",
+      "color": "#EF4444"
+    }
+  ],
+  "settings": {
+    "currency": "INR",
+    "theme": "dark"
+  },
+  "monthlySavings": 1362,
+  "lastSyncedAt": "2026-08-16T17:47:00.000Z"
+}
 ```
 
 ---
 
-## ✨ Features
+## 🚀 Web Application Setup & Deployment
 
-- 💎 **Lumina Neon UI**: Futuristic kinetic glassmorphism panels with high-contrast typography (Plus Jakarta Sans & Inter).
-- 🇮🇳 **Indian Rupee (₹) Support**: Complete Indian Rupee formatting across metrics, tables, and chart tooltips.
-- 📊 **Interactive Analytics**: Monthly expense breakdown, weekly graphs, doughnut category shares, and 365-day activity heatmaps.
-- ⚡ **Rapid Transaction Entry**: 1-tap presets for Food 🍕, Fuel ⛽, Shopping 🛍️, Bills 💡, and Salary 💰.
-- 🔒 **Cloud Sync & Vault**: Secure database sync via Vercel Serverless API or GitHub Gist.
-- 🛡️ **Admin Security**: PIN-protected write access to protect data from unauthorized edits.
-
----
-
-## 🛠️ Local Development & Server Setup
-
-To run the application locally on your machine:
-
-1. Clone the repository:
+1. **Install Dependencies**:
    ```bash
-   git clone https://github.com/siva240905/Expenses.git
-   cd Expenses
+   npm install
    ```
 
-2. Start the local server:
+2. **Run Web App Locally**:
    ```bash
-   node server.js
+   npx vite
+   # or run Node server: node server.js
    ```
 
-3. Open your browser:
-   ```text
-   http://localhost:3000
+3. **Build for Production**:
+   ```bash
+   npx vite build
    ```
 
 ---
 
-## 📄 License
-Distributed under the MIT License. See `LICENSE` for more information.
+## 📱 Android Application Setup & Build
+
+1. Open `android/` directory in Android Studio.
+2. Ensure JDK 17 is selected in Project Structure.
+3. Build & Run Debug APK:
+   ```bash
+   cd android
+   ./gradlew assembleDebug
+   ```
+
+---
+
+## 🔐 GitHub Gist Setup Instructions
+
+1. Go to [GitHub Settings -> Personal Access Tokens](https://github.com/settings/tokens).
+2. Generate a token with the `gist` permission scope.
+3. Open **Settings** inside either Android or Web app.
+4. Enter your Personal Access Token.
+5. Click **Save Configuration & Connect**. The app will automatically create a secret Gist containing your 57 transactions and sync bidirectionally!

@@ -1,59 +1,91 @@
 package com.coinflow.app
 
-import android.annotation.SuppressLint
 import android.os.Bundle
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.coinflow.app.ui.MainViewModel
+import com.coinflow.app.ui.screens.*
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
-    private lateinit var webView: WebView
+    private val viewModel: MainViewModel by viewModels()
 
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        webView = WebView(this)
-        setContentView(webView)
 
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            databaseEnabled = true
-            allowFileAccess = true
-            allowContentAccess = true
-            @Suppress("DEPRECATION")
-            allowFileAccessFromFileURLs = true
-            @Suppress("DEPRECATION")
-            allowUniversalAccessFromFileURLs = true
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            useWideViewPort = true
-            loadWithOverviewMode = true
-        }
+        setContent {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    background = Color(0xFF020617),
+                    surface = Color(0xFF0F172A),
+                    primary = Color(0xFF10B981)
+                )
+            ) {
+                var currentTab by remember { mutableStateOf("dashboard") }
 
-        webView.webChromeClient = WebChromeClient()
-
-        webView.addJavascriptInterface(WebAppInterface(this), "AndroidNative")
-
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                return false
+                Scaffold(
+                    bottomBar = {
+                        NavigationBar(
+                            containerColor = Color(0xFF0F172A),
+                            contentColor = Color(0xFF94A3B8)
+                        ) {
+                            NavigationBarItem(
+                                selected = currentTab == "dashboard",
+                                onClick = { currentTab = "dashboard" },
+                                icon = { Text("📊") },
+                                label = { Text("Dashboard") }
+                            )
+                            NavigationBarItem(
+                                selected = currentTab == "transactions",
+                                onClick = { currentTab = "transactions" },
+                                icon = { Text("💸") },
+                                label = { Text("Transactions") }
+                            )
+                            NavigationBarItem(
+                                selected = currentTab == "add",
+                                onClick = { currentTab = "add" },
+                                icon = { Text("➕") },
+                                label = { Text("Add") }
+                            )
+                            NavigationBarItem(
+                                selected = currentTab == "settings",
+                                onClick = { currentTab = "settings" },
+                                icon = { Text("⚙️") },
+                                label = { Text("Settings") }
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        when (currentTab) {
+                            "dashboard" -> DashboardScreen(
+                                viewModel = viewModel,
+                                onNavigateTransactions = { currentTab = "transactions" },
+                                onOpenAddTx = { currentTab = "add" }
+                            )
+                            "transactions" -> TransactionsScreen(
+                                viewModel = viewModel,
+                                onOpenAddTx = { currentTab = "add" }
+                            )
+                            "add" -> AddEditTransactionScreen(
+                                viewModel = viewModel,
+                                onDone = { currentTab = "dashboard" }
+                            )
+                            "settings" -> SettingsScreen(
+                                viewModel = viewModel
+                            )
+                        }
+                    }
+                }
             }
-        }
-
-        // Load local assets index.html
-        webView.loadUrl("file:///android_asset/index.html")
-    }
-
-    override fun onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            super.onBackPressed()
         }
     }
 }
