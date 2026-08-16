@@ -295,9 +295,14 @@ async function syncToGitHubGist(manual = false) {
     };
 
     if (state.gistToken) {
-      headers['Authorization'] = state.gistToken.startsWith('Bearer ') || state.gistToken.startsWith('token ')
-        ? state.gistToken
-        : `token ${state.gistToken}`;
+      const tokenStr = state.gistToken.trim();
+      if (tokenStr.startsWith('Bearer ') || tokenStr.startsWith('token ')) {
+        headers['Authorization'] = tokenStr;
+      } else if (tokenStr.startsWith('github_pat_')) {
+        headers['Authorization'] = `Bearer ${tokenStr}`;
+      } else {
+        headers['Authorization'] = `token ${tokenStr}`;
+      }
     }
 
     const bodyData = method === 'POST' 
@@ -365,9 +370,14 @@ async function restoreFromGist(manual = false) {
 
     let headers = { 'Accept': 'application/vnd.github.v3+json' };
     if (state.gistToken) {
-      headers['Authorization'] = state.gistToken.startsWith('Bearer ') || state.gistToken.startsWith('token ')
-        ? state.gistToken
-        : `token ${state.gistToken}`;
+      const tokenStr = state.gistToken.trim();
+      if (tokenStr.startsWith('Bearer ') || tokenStr.startsWith('token ')) {
+        headers['Authorization'] = tokenStr;
+      } else if (tokenStr.startsWith('github_pat_')) {
+        headers['Authorization'] = `Bearer ${tokenStr}`;
+      } else {
+        headers['Authorization'] = `token ${tokenStr}`;
+      }
     }
 
     let res;
@@ -1024,17 +1034,22 @@ function restartMonthlySpent() {
 
 // --- Chart Visualizations Router ---
 function renderCharts() {
-  if (activeReportTab === 'monthly') {
-    renderMonthlyExpenseChart();
-    renderCategoryChart();
-  } else if (activeReportTab === 'weekly') {
-    renderWeeklyExpenseChart();
-    renderWeeklyCategoryChart();
-  } else if (activeReportTab === 'database') {
-    renderMethodChart();
-    renderBalanceTrendChart();
-  } else if (activeReportTab === 'heatmap') {
-    renderTrendChart();
+  if (typeof Chart === 'undefined') return;
+  try {
+    if (activeReportTab === 'monthly') {
+      try { renderMonthlyExpenseChart(); } catch (e) { console.warn('Monthly chart error:', e); }
+      try { renderCategoryChart(); } catch (e) { console.warn('Category chart error:', e); }
+    } else if (activeReportTab === 'weekly') {
+      try { renderWeeklyExpenseChart(); } catch (e) { console.warn('Weekly chart error:', e); }
+      try { renderWeeklyCategoryChart(); } catch (e) { console.warn('Weekly category chart error:', e); }
+    } else if (activeReportTab === 'database') {
+      try { renderMethodChart(); } catch (e) { console.warn('Method chart error:', e); }
+      try { renderBalanceTrendChart(); } catch (e) { console.warn('Balance chart error:', e); }
+    } else if (activeReportTab === 'heatmap') {
+      try { renderTrendChart(); } catch (e) { console.warn('Trend chart error:', e); }
+    }
+  } catch (err) {
+    console.warn('Error rendering charts:', err);
   }
 }
 
@@ -1509,7 +1524,9 @@ function renderBalanceTrendChart() {
 }
 
 function renderCategoryChart() {
-  const ctx = document.getElementById('categoryChart').getContext('2d');
+  const canvas = document.getElementById('categoryChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
   
   // Aggregate expenses by category
   const expenseByCategory = {};
@@ -1572,7 +1589,9 @@ function renderCategoryChart() {
 }
 
 function renderTrendChart() {
-  const ctx = document.getElementById('trendChart').getContext('2d');
+  const canvas = document.getElementById('trendChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
 
   // Group transactions by date/month
   const monthlyData = {};
