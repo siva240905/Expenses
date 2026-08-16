@@ -237,12 +237,7 @@ async function connectAndSyncGist(manual = true) {
 
   updateSyncPillStatus('syncing');
 
-  // 1. If Gist ID is provided, fetch and merge remote data first
-  if (state.gistId) {
-    await restoreFromGist(false);
-  }
-
-  // 2. Push current dataset to GitHub Gist
+  // Push current dataset directly to GitHub Gist (overwriting remote data.json & expenses.json)
   const syncSuccess = await syncToGitHubGist(false);
 
   if (syncSuccess) {
@@ -255,6 +250,89 @@ async function connectAndSyncGist(manual = true) {
     return false;
   }
 }
+
+async function clearAndResetGistData() {
+  const gistIdInput = document.getElementById('gist-id-input');
+  const gistTokenInput = document.getElementById('gist-token-input');
+
+  const gistIdVal = gistIdInput ? gistIdInput.value.trim() : state.gistId;
+  const gistTokenVal = gistTokenInput ? gistTokenInput.value.trim() : state.gistToken;
+
+  if (gistIdVal) state.gistId = gistIdVal;
+  if (gistTokenVal) state.gistToken = gistTokenVal;
+
+  if (!state.gistId || !state.gistToken) {
+    showToast('Please enter both Gist ID and Access Token (PAT) to clear cloud Gist data.', 'warning');
+    return;
+  }
+
+  if (!confirm('Are you sure you want to permanently delete all transaction data from your GitHub Gist cloud storage (data.json & expenses.json)?')) {
+    return;
+  }
+
+  state.transactions = [];
+  state.monthlySavings = 0;
+  saveToLocalStorage(false);
+
+  const payload = {
+    transactions: [],
+    monthlySavings: 0,
+    updatedAt: new Date().toISOString()
+  };
+
+  const filesContent = {
+    'data.json': { content: JSON.stringify(payload, null, 2) },
+    'expenses.json': { content: JSON.stringify(payload, null, 2) }
+  };
+
+  updateSyncPillStatus('syncing');
+
+  let url = `https://api.github.com/gists/${state.gistId}`;
+  let headers = {
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+
+  const tokenStr = state.gistToken.trim();
+  if (tokenStr.startsWith('Bearer ') || tokenStr.startsWith('token ')) {
+    headers['Authorization'] = tokenStr;
+  } else if (tokenStr.startsWith('github_pat_')) {
+    headers['Authorization'] = `Bearer ${tokenStr}`;
+  } else {
+    headers['Authorization'] = `token ${tokenStr}`;
+  }
+
+  try {
+    let res = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ files: filesContent })
+    });
+
+    if (!res || (!res.ok && res.status !== 401 && res.status !== 404)) {
+      const proxyHeaders = { 'Content-Type': 'application/json', 'x-github-token': state.gistToken };
+      res = await fetch(`/api/gist-proxy?gistId=${state.gistId}`, {
+        method: 'PATCH',
+        headers: proxyHeaders,
+        body: JSON.stringify({ files: filesContent })
+      });
+    }
+
+    if (res && res.ok) {
+      showToast('Successfully wiped all transactions from GitHub Gist (data.json & expenses.json)!', 'success');
+      updateSyncPillStatus('synced');
+      closeVaultModal();
+      renderApp();
+    } else {
+      showToast('Failed to clear Gist data. Check Gist ID & PAT token permissions.', 'error');
+      updateSyncPillStatus('failed');
+    }
+  } catch (err) {
+    showToast('Network error while resetting Gist data.', 'error');
+    updateSyncPillStatus('failed');
+  }
+}
+
 
 async function syncToGitHubGist(manual = false) {
   if (!state.gistId && !state.gistToken) {

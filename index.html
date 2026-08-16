@@ -722,11 +722,16 @@
           </small>
         </div>
         
-        <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-          <button type="button" class="btn btn-secondary" onclick="closeVaultModal()">Cancel</button>
-          <button type="submit" id="btn-connect-sync" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <i class="fa-solid fa-rotate"></i> Connect & Sync
+        <div class="modal-footer" style="display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-top: 20px;">
+          <button type="button" class="btn" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" onclick="clearAndResetGistData()">
+            <i class="fa-solid fa-trash-can"></i> Wipe Cloud Gist Data
           </button>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeVaultModal()">Cancel</button>
+            <button type="submit" id="btn-connect-sync" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <i class="fa-solid fa-rotate"></i> Connect & Sync
+            </button>
+          </div>
         </div>
       </form>
     </div>
