@@ -1,5 +1,523 @@
 {
-  "transactions": [],
-  "monthlySavings": 0,
-  "updatedAt": "2026-08-16T18:30:00.000Z"
+  "version": 1,
+  "user": {
+    "currency": "INR"
+  },
+  "transactions": [
+    {
+      "id": "tx-1786767545397",
+      "type": "expense",
+      "amount": 150,
+      "date": "2026-08-15",
+      "category": "Transportation",
+      "method": "Bank Transfer",
+      "note": "Return to Home"
+    },
+    {
+      "id": "tx-1786767450664",
+      "type": "expense",
+      "amount": 70,
+      "date": "2026-08-15",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1786767352458",
+      "type": "expense",
+      "amount": 100,
+      "date": "2026-08-15",
+      "category": "Transportation",
+      "method": "Bank Transfer",
+      "note": "petrol"
+    },
+    {
+      "id": "tx-1786767517179",
+      "type": "expense",
+      "amount": 30,
+      "date": "2026-08-14",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Breakfast"
+    },
+    {
+      "id": "tx-1786767425115",
+      "type": "expense",
+      "amount": 20,
+      "date": "2026-08-13",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Snack"
+    },
+    {
+      "id": "tx-1786767403712",
+      "type": "expense",
+      "amount": 40,
+      "date": "2026-08-13",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Breakfast"
+    },
+    {
+      "id": "tx-1786767268171",
+      "type": "income",
+      "amount": 500,
+      "date": "2026-08-12",
+      "category": "Income",
+      "method": "Bank Transfer",
+      "note": "Appatha"
+    },
+    {
+      "id": "tx-1786767189035",
+      "type": "expense",
+      "amount": 112,
+      "date": "2026-08-12",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Snack and Dinner"
+    },
+    {
+      "id": "tx-1786767120870",
+      "type": "expense",
+      "amount": 40,
+      "date": "2026-08-11",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1786767097749",
+      "type": "expense",
+      "amount": 15,
+      "date": "2026-08-11",
+      "category": "Entertainment",
+      "method": "Bank Transfer",
+      "note": "sakthi"
+    },
+    {
+      "id": "tx-1786766954562",
+      "type": "expense",
+      "amount": 50,
+      "date": "2026-08-10",
+      "category": "Health",
+      "method": "Bank Transfer",
+      "note": "Fever"
+    },
+    {
+      "id": "tx-1786766932123",
+      "type": "expense",
+      "amount": 35,
+      "date": "2026-08-10",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1786766846846",
+      "type": "income",
+      "amount": 500,
+      "date": "2026-08-10",
+      "category": "Income",
+      "method": "Bank Transfer",
+      "note": "Amma "
+    },
+    {
+      "id": "tx-1786340246731",
+      "type": "expense",
+      "amount": 356,
+      "date": "2026-08-08",
+      "category": "Transportation",
+      "method": "Bank Transfer",
+      "note": "karur clg"
+    },
+    {
+      "id": "tx-1786340292132",
+      "type": "expense",
+      "amount": 78,
+      "date": "2026-08-07",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "2 days food "
+    },
+    {
+      "id": "tx-1786021908790",
+      "type": "expense",
+      "amount": 1900,
+      "date": "2026-08-06",
+      "category": "Housing",
+      "method": "Bank Transfer",
+      "note": "RENT"
+    },
+    {
+      "id": "tx-1786023368767",
+      "type": "expense",
+      "amount": 19,
+      "date": "2026-08-05",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785903410732",
+      "type": "expense",
+      "amount": 349,
+      "date": "2026-08-05",
+      "category": "Housing",
+      "method": "Bank Transfer",
+      "note": "Recharge"
+    },
+    {
+      "id": "tx-1785903351116",
+      "type": "expense",
+      "amount": 68,
+      "date": "2026-08-04",
+      "category": "Health",
+      "method": "Bank Transfer",
+      "note": "soap"
+    },
+    {
+      "id": "tx-1785772484737",
+      "type": "expense",
+      "amount": 18,
+      "date": "2026-08-03",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner "
+    },
+    {
+      "id": "tx-1785763543009",
+      "type": "income",
+      "amount": 500,
+      "date": "2026-08-02",
+      "category": "Income",
+      "method": "Bank Transfer",
+      "note": "Appa"
+    },
+    {
+      "id": "tx-1785763510741",
+      "type": "expense",
+      "amount": 10,
+      "date": "2026-08-02",
+      "category": "Health",
+      "method": "Bank Transfer",
+      "note": "shop"
+    },
+    {
+      "id": "tx-1785763356553",
+      "type": "expense",
+      "amount": 40,
+      "date": "2026-08-01",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785763322919",
+      "type": "expense",
+      "amount": 30,
+      "date": "2026-08-01",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Snack"
+    },
+    {
+      "id": "tx-1785589225714",
+      "type": "expense",
+      "amount": 9,
+      "date": "2026-08-01",
+      "category": "Health",
+      "method": "Bank Transfer",
+      "note": "Washing "
+    },
+    {
+      "id": "tx-1785551177783",
+      "type": "expense",
+      "amount": 27,
+      "date": "2026-08-01",
+      "category": "Food",
+      "method": "Debit Card",
+      "note": "Lunch"
+    },
+    {
+      "id": "tx-1785551014548",
+      "type": "expense",
+      "amount": 60,
+      "date": "2026-07-31",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Varun and Waffles "
+    },
+    {
+      "id": "tx-1785471755648",
+      "type": "expense",
+      "amount": 8,
+      "date": "2026-07-31",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "lunch"
+    },
+    {
+      "id": "tx-1785471737527",
+      "type": "expense",
+      "amount": 35,
+      "date": "2026-07-30",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785376689442",
+      "type": "expense",
+      "amount": 34,
+      "date": "2026-07-30",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner and lunch"
+    },
+    {
+      "id": "tx-1785376662282",
+      "type": "expense",
+      "amount": 8,
+      "date": "2026-07-29",
+      "category": "Shopping",
+      "method": "Bank Transfer",
+      "note": "Room"
+    },
+    {
+      "id": "tx-1785376595657",
+      "type": "expense",
+      "amount": 120,
+      "date": "2026-07-29",
+      "category": "Other",
+      "method": "Bank Transfer",
+      "note": "Mani"
+    },
+    {
+      "id": "tx-1785244568429",
+      "type": "expense",
+      "amount": 20,
+      "date": "2026-07-28",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Breakfast"
+    },
+    {
+      "id": "tx-1785244539930",
+      "type": "expense",
+      "amount": 50,
+      "date": "2026-07-27",
+      "category": "Transportation",
+      "method": "Bank Transfer",
+      "note": "travel to home"
+    },
+    {
+      "id": "tx-1785244498281",
+      "type": "expense",
+      "amount": 65,
+      "date": "2026-07-27",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785244472245",
+      "type": "expense",
+      "amount": 60,
+      "date": "2026-07-27",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Mani visit"
+    },
+    {
+      "id": "tx-1785244387568",
+      "type": "income",
+      "amount": 1000,
+      "date": "2026-07-26",
+      "category": "Income",
+      "method": "Bank Transfer",
+      "note": "Chithi returns"
+    },
+    {
+      "id": "tx-1785244343125",
+      "type": "expense",
+      "amount": 40,
+      "date": "2026-07-26",
+      "category": "Shopping",
+      "method": "Bank Transfer",
+      "note": "Masala"
+    },
+    {
+      "id": "tx-1785244316703",
+      "type": "expense",
+      "amount": 460,
+      "date": "2026-07-26",
+      "category": "Shopping",
+      "method": "Bank Transfer",
+      "note": "Chicken"
+    },
+    {
+      "id": "tx-1785244284078",
+      "type": "expense",
+      "amount": 45,
+      "date": "2026-07-26",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Maran ice"
+    },
+    {
+      "id": "tx-1785244158734",
+      "type": "expense",
+      "amount": 125,
+      "date": "2026-07-26",
+      "category": "Education",
+      "method": "Bank Transfer",
+      "note": "notes"
+    },
+    {
+      "id": "tx-1785243288619",
+      "type": "expense",
+      "amount": 215,
+      "date": "2026-07-26",
+      "category": "Education",
+      "method": "Bank Transfer",
+      "note": "Hashni"
+    },
+    {
+      "id": "tx-1785244100958",
+      "type": "expense",
+      "amount": 10,
+      "date": "2026-07-24",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Snack"
+    },
+    {
+      "id": "tx-1785244073362",
+      "type": "expense",
+      "amount": 200,
+      "date": "2026-07-24",
+      "category": "Income",
+      "method": "Bank Transfer",
+      "note": "Murugan appa"
+    },
+    {
+      "id": "tx-1785243960726",
+      "type": "expense",
+      "amount": 14,
+      "date": "2026-07-24",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785243937213",
+      "type": "expense",
+      "amount": 50,
+      "date": "2026-07-24",
+      "category": "Transportation",
+      "method": "Bank Transfer",
+      "note": "return home"
+    },
+    {
+      "id": "tx-1785243895692",
+      "type": "expense",
+      "amount": 68,
+      "date": "2026-07-23",
+      "category": "Food",
+      "method": "Bank Transfer",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785242596355",
+      "type": "expense",
+      "amount": 200,
+      "date": "2026-07-23",
+      "category": "Transportation",
+      "method": "Debit Card",
+      "note": "Fuel / Transport"
+    },
+    {
+      "id": "tx-1785241951674",
+      "type": "expense",
+      "amount": 18,
+      "date": "2026-07-23",
+      "category": "Food",
+      "method": "Debit Card",
+      "note": "breakfast"
+    },
+    {
+      "id": "tx-1785241931974",
+      "type": "expense",
+      "amount": 55,
+      "date": "2026-07-22",
+      "category": "Food",
+      "method": "Debit Card",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785241898773",
+      "type": "expense",
+      "amount": 352,
+      "date": "2026-07-22",
+      "category": "Shopping",
+      "method": "Debit Card",
+      "note": "Shopping Items rice and oil"
+    },
+    {
+      "id": "tx-1785241877346",
+      "type": "expense",
+      "amount": 65,
+      "date": "2026-07-22",
+      "category": "Food",
+      "method": "Debit Card",
+      "note": "breakfast"
+    },
+    {
+      "id": "tx-1785241858825",
+      "type": "expense",
+      "amount": 97,
+      "date": "2026-07-21",
+      "category": "Food",
+      "method": "Debit Card",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785241845333",
+      "type": "expense",
+      "amount": 75,
+      "date": "2026-07-21",
+      "category": "Shopping",
+      "method": "Debit Card",
+      "note": "brush"
+    },
+    {
+      "id": "tx-1785241810932",
+      "type": "expense",
+      "amount": 35,
+      "date": "2026-07-20",
+      "category": "Food",
+      "method": "Debit Card",
+      "note": "Dinner"
+    },
+    {
+      "id": "tx-1785241785131",
+      "type": "expense",
+      "amount": 5000,
+      "date": "2026-07-20",
+      "category": "Housing",
+      "method": "Debit Card",
+      "note": "rent"
+    },
+    {
+      "id": "tx-1785241369711",
+      "type": "income",
+      "amount": 9000,
+      "date": "2026-07-19",
+      "category": "Housing",
+      "method": "Bank Transfer",
+      "note": "House"
+    }
+  ],
+  "monthlySavings": 1362,
+  "updatedAt": "2026-08-16T19:12:00.000Z"
 }
