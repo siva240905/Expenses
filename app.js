@@ -132,7 +132,7 @@ function saveToLocalStorage(triggerCloudSync = true) {
     if (state.gistId) localStorage.setItem(GIST_ID_STORAGE, state.gistId);
     if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
     
-    if (triggerCloudSync && state.gistId && state.gistToken) {
+    if (triggerCloudSync && state.gistId) {
       syncToCloudDatabase();
     }
   } catch (err) {
@@ -142,15 +142,70 @@ function saveToLocalStorage(triggerCloudSync = true) {
 
 // --- Database & Cloud Synchronization Engine ---
 function initCloudDatabaseSync() {
-  syncFromCloudDatabase();
+  if (state.gistId) {
+    syncFromCloudDatabase();
+  }
 
-  window.addEventListener('focus', syncFromCloudDatabase);
+  window.addEventListener('focus', () => {
+    if (state.gistId) syncFromCloudDatabase();
+  });
   if (!cloudSyncInterval) {
-    cloudSyncInterval = setInterval(syncFromCloudDatabase, 30000);
+    cloudSyncInterval = setInterval(() => {
+      if (state.gistId) syncFromCloudDatabase();
+    }, 30000);
+  }
+}
+
+async function connectAndSyncGist(manual = true) {
+  const gistIdInput = document.getElementById('gist-id-input');
+  const gistTokenInput = document.getElementById('gist-token-input');
+
+  const gistIdVal = gistIdInput ? gistIdInput.value.trim() : state.gistId;
+  const gistTokenVal = gistTokenInput ? gistTokenInput.value.trim() : state.gistToken;
+
+  state.gistId = gistIdVal || '';
+  state.gistToken = gistTokenVal || '';
+
+  if (state.gistId) localStorage.setItem(GIST_ID_STORAGE, state.gistId);
+  else localStorage.removeItem(GIST_ID_STORAGE);
+
+  if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
+  else localStorage.removeItem(GIST_TOKEN_STORAGE);
+
+  if (!state.gistId && !state.gistToken) {
+    updateSyncPillStatus('unconfigured');
+    if (manual) showToast('Please enter a Gist ID or Access Token (PAT).', 'warning');
+    return false;
+  }
+
+  updateSyncPillStatus('syncing');
+
+  // 1. If Gist ID is provided, fetch and merge remote data first
+  if (state.gistId) {
+    await restoreFromGist(false);
+  }
+
+  // 2. Push current dataset to GitHub Gist
+  const syncSuccess = await syncToGitHubGist(false);
+
+  if (syncSuccess) {
+    if (manual) showToast('Connected & Synced with GitHub Gist successfully!', 'success');
+    closeVaultModal();
+    renderApp();
+    return true;
+  } else {
+    if (manual) showToast('Failed to sync with GitHub Gist. Please check Gist ID & Token.', 'error');
+    return false;
   }
 }
 
 async function syncToGitHubGist(manual = false) {
+  if (!state.gistId && !state.gistToken) {
+    updateSyncPillStatus('unconfigured');
+    if (manual) showToast('Please enter a GitHub Access Token (PAT) or Gist ID.', 'warning');
+    return false;
+  }
+
   try {
     updateSyncPillStatus('syncing');
     
@@ -165,13 +220,11 @@ async function syncToGitHubGist(manual = false) {
       'expenses.json': { content: JSON.stringify(payload, null, 2) }
     };
 
-    // Prepare headers and endpoint
     let url = state.gistId 
       ? `https://api.github.com/gists/${state.gistId}`
       : `https://api.github.com/gists`;
     let method = state.gistId ? 'PATCH' : 'POST';
 
-    // If no direct token, check if we can use server proxy
     let headers = {
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
@@ -187,17 +240,28 @@ async function syncToGitHubGist(manual = false) {
       ? JSON.stringify({ description: 'Coin Flow Expense Data Backup', public: false, files: filesContent })
       : JSON.stringify({ files: filesContent });
 
-    let res = await fetch(url, { method, headers, body: bodyData });
-
-    // Fallback to server proxy if direct fetch fails without token
-    if (!res.ok && !state.gistToken) {
-      const proxyUrl = state.gistId ? `/api/gist-proxy?gistId=${state.gistId}` : `/api/gist-proxy`;
-      res = await fetch(proxyUrl, { method, headers: { 'Content-Type': 'application/json' }, body: bodyData });
+    let res;
+    try {
+      res = await fetch(url, { method, headers, body: bodyData });
+    } catch (e) {
+      console.warn('Direct GitHub fetch error, attempting server proxy...', e);
     }
 
-    if (res.ok) {
+    // Proxy fallback if direct fetch failed
+    if (!res || !res.ok) {
+      const proxyUrl = state.gistId ? `/api/gist-proxy?gistId=${state.gistId}` : `/api/gist-proxy`;
+      const proxyHeaders = { 'Content-Type': 'application/json' };
+      if (state.gistToken) proxyHeaders['x-github-token'] = state.gistToken;
+      try {
+        res = await fetch(proxyUrl, { method, headers: proxyHeaders, body: bodyData });
+      } catch (proxyErr) {
+        console.warn('Gist proxy fetch error:', proxyErr);
+      }
+    }
+
+    if (res && res.ok) {
       const data = await res.json();
-      if (!state.gistId && data.id) {
+      if (data.id) {
         state.gistId = data.id;
         localStorage.setItem(GIST_ID_STORAGE, state.gistId);
         const inputElem = document.getElementById('gist-id-input');
@@ -236,13 +300,24 @@ async function restoreFromGist(manual = false) {
         : `token ${state.gistToken}`;
     }
 
-    let res = await fetch(`https://api.github.com/gists/${state.gistId}`, { method: 'GET', headers });
+    let res;
+    try {
+      res = await fetch(`https://api.github.com/gists/${state.gistId}`, { method: 'GET', headers });
+    } catch (e) {
+      console.warn('Direct fetch failed, trying proxy...', e);
+    }
     
-    if (!res.ok) {
-      res = await fetch(`/api/gist-proxy?gistId=${state.gistId}`, { method: 'GET' });
+    if (!res || !res.ok) {
+      const proxyHeaders = {};
+      if (state.gistToken) proxyHeaders['x-github-token'] = state.gistToken;
+      try {
+        res = await fetch(`/api/gist-proxy?gistId=${state.gistId}`, { method: 'GET', headers: proxyHeaders });
+      } catch (proxyErr) {
+        console.warn('Proxy restore fetch error:', proxyErr);
+      }
     }
 
-    if (res.ok) {
+    if (res && res.ok) {
       const gistData = await res.json();
       const files = gistData.files || {};
       const targetFile = files['data.json'] || files['expenses.json'] || files[Object.keys(files)[0]];
@@ -258,7 +333,7 @@ async function restoreFromGist(manual = false) {
           if (tx && tx.id) txMap.set(tx.id, tx);
         });
 
-        // 2. Merge remote transactions (remote takes precedence or adds missing)
+        // 2. Merge remote transactions
         if (Array.isArray(remoteContent.transactions)) {
           remoteContent.transactions.forEach(tx => {
             if (tx && tx.id) txMap.set(tx.id, tx);
@@ -268,11 +343,11 @@ async function restoreFromGist(manual = false) {
         state.transactions = Array.from(txMap.values());
         state.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-        if (typeof remoteContent.monthlySavings !== 'undefined') {
+        if (typeof remoteContent.monthlySavings !== 'undefined' && remoteContent.monthlySavings > 0) {
           state.monthlySavings = remoteContent.monthlySavings;
         }
 
-        saveToLocalStorage(true);
+        saveToLocalStorage(false);
         renderApp();
         updateSyncPillStatus('synced');
         if (manual) showToast('Successfully restored and merged Gist data!', 'success');
@@ -1598,7 +1673,7 @@ function openVaultModal() {
   const gistIdInput = document.getElementById('gist-id-input');
   const gistTokenInput = document.getElementById('gist-token-input');
 
-  if (gistIdInput) gistIdInput.value = state.gistId || '4e9d3322f1da9f4a2ed6d79374937944';
+  if (gistIdInput) gistIdInput.value = state.gistId || '';
   if (gistTokenInput) gistTokenInput.value = state.gistToken || '';
 
   const modal = document.getElementById('vault-modal');
@@ -1609,7 +1684,6 @@ function openVaultModal() {
   setTimeout(() => {
     if (gistIdInput) {
       gistIdInput.focus();
-      gistIdInput.select();
     }
   }, 100);
 }
@@ -1623,19 +1697,7 @@ function closeVaultModal() {
 
 function handleVaultFormSubmit(e) {
   e.preventDefault();
-  const gistIdVal = document.getElementById('gist-id-input').value.trim();
-  const gistTokenVal = document.getElementById('gist-token-input').value.trim();
-
-  if (gistIdVal) {
-    state.gistId = gistIdVal;
-    state.gistToken = gistTokenVal;
-    localStorage.setItem(GIST_ID_STORAGE, state.gistId);
-    if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
-
-    closeVaultModal();
-    syncFromCloudDatabase();
-    showToast('Connected to GitHub Gist Cloud Database!', 'success');
-  }
+  connectAndSyncGist(true);
 }
 
 // --- Admin Mode Handlers ---
@@ -1943,6 +2005,7 @@ function showToast(message, type = 'info') {
 }
 
 // Global Window Exports for Gist Sync & Restore
+window.connectAndSyncGist = connectAndSyncGist;
 window.syncToGitHubGist = syncToGitHubGist;
 window.restoreFromGist = restoreFromGist;
 window.syncFromCloudDatabase = syncFromCloudDatabase;

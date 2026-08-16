@@ -722,18 +722,11 @@
           </small>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
-          <button type="button" id="btn-sync-gist" class="btn btn-primary" onclick="syncToGitHubGist(true)" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Sync to Gist
-          </button>
-          <button type="button" id="btn-restore-gist" class="btn btn-secondary" onclick="restoreFromGist(true)" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <i class="fa-solid fa-cloud-arrow-down"></i> Restore from Gist
-          </button>
-        </div>
-
-        <div class="modal-footer">
+        <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
           <button type="button" class="btn btn-secondary" onclick="closeVaultModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Config</button>
+          <button type="submit" id="btn-connect-sync" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fa-solid fa-rotate"></i> Connect & Sync
+          </button>
         </div>
       </form>
     </div>
