@@ -275,14 +275,20 @@ async function clearAndResetGistData() {
   saveToLocalStorage(false);
 
   const payload = {
+    version: 1,
+    user: { currency: "INR" },
     transactions: [],
+    categories: [],
+    settings: { currency: "INR", theme: "dark" },
     monthlySavings: 0,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    lastSyncedAt: new Date().toISOString()
   };
 
   const filesContent = {
-    'data.json': { content: JSON.stringify(payload, null, 2) },
-    'expenses.json': { content: JSON.stringify(payload, null, 2) }
+    'coin_flow_data.json': { content: JSON.stringify(payload, null, 2) },
+    'data.json': null,
+    'expenses.json': null
   };
 
   updateSyncPillStatus('syncing');
@@ -345,14 +351,18 @@ async function syncToGitHubGist(manual = false) {
     updateSyncPillStatus('syncing');
     
     const payload = {
+      version: 1,
+      user: { currency: "INR" },
       transactions: state.transactions || [],
       monthlySavings: state.monthlySavings || 0,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      lastSyncedAt: new Date().toISOString()
     };
 
     const filesContent = {
-      'data.json': { content: JSON.stringify(payload, null, 2) },
-      'expenses.json': { content: JSON.stringify(payload, null, 2) }
+      'coin_flow_data.json': { content: JSON.stringify(payload, null, 2) },
+      'data.json': null,
+      'expenses.json': null
     };
 
     let url = state.gistId 
@@ -472,7 +482,7 @@ async function restoreFromGist(manual = false) {
     if (res && res.ok) {
       const gistData = await res.json();
       const files = gistData.files || {};
-      const targetFile = files['data.json'] || files['expenses.json'] || files[Object.keys(files)[0]];
+      const targetFile = files['coin_flow_data.json'] || files['data.json'] || files['expenses.json'] || files[Object.keys(files)[0]];
 
       if (targetFile && targetFile.content) {
         const remoteContent = JSON.parse(targetFile.content);
