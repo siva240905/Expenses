@@ -21,7 +21,7 @@ import com.coinflow.app.ui.MainViewModel
 @Composable
 fun TransactionsScreen(
     viewModel: MainViewModel,
-    onOpenAddTx: () => Unit
+    onOpenAddTx: () -> Unit
 ) {
     val transactions by viewModel.transactions.collectAsState()
     var searchQuery by remember { mutableStateOf("") }

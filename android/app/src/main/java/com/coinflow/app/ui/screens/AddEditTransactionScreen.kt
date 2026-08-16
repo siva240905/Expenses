@@ -21,7 +21,7 @@ import java.util.*
 @Composable
 fun AddEditTransactionScreen(
     viewModel: MainViewModel,
-    onDone: () => Unit
+    onDone: () -> Unit
 ) {
     var type by remember { mutableStateOf("expense") }
     var amountStr by remember { mutableStateOf("") }

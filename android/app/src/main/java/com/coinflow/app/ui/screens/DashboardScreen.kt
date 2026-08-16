@@ -25,8 +25,8 @@ import com.coinflow.app.ui.MainViewModel
 @Composable
 fun DashboardScreen(
     viewModel: MainViewModel,
-    onNavigateTransactions: () => Unit,
-    onOpenAddTx: () => Unit
+    onNavigateTransactions: () -> Unit,
+    onOpenAddTx: () -> Unit
 ) {
     val uiMetrics by viewModel.uiMetrics.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
