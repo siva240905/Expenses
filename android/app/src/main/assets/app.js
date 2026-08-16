@@ -2171,3 +2171,161 @@ window.syncToCloudDatabase = syncToCloudDatabase;
 window.openVaultModal = openVaultModal;
 window.closeVaultModal = closeVaultModal;
 window.handleVaultFormSubmit = handleVaultFormSubmit;
+
+// --- Lumina Design System Keypad & Modal Handlers ---
+let currentKeypadAmount = "0";
+let selectedLuminaCategory = "Food";
+let selectedLuminaType = "expense";
+
+function updateLuminaDisplay() {
+  const display = document.getElementById('luminaAmountDisplay');
+  if (!display) return;
+  display.innerText = currentKeypadAmount === "0" ? "0.00" : currentKeypadAmount;
+}
+
+function appendKeypadNum(num) {
+  if (currentKeypadAmount === "0" && num !== ".") {
+    currentKeypadAmount = num;
+  } else if (currentKeypadAmount.length < 9) {
+    if (num === '.' && currentKeypadAmount.includes('.')) return;
+    currentKeypadAmount += num;
+  }
+  updateLuminaDisplay();
+}
+
+function deleteKeypadNum() {
+  if (currentKeypadAmount.length > 1) {
+    currentKeypadAmount = currentKeypadAmount.slice(0, -1);
+  } else {
+    currentKeypadAmount = "0";
+  }
+  updateLuminaDisplay();
+}
+
+function selectLuminaCategory(catName, type = 'expense') {
+  selectedLuminaCategory = catName;
+  selectedLuminaType = type;
+  document.querySelectorAll('.lumina-cat-btn').forEach(btn => {
+    btn.classList.remove('bg-primary-container/20', 'border-primary-fixed', 'text-primary-fixed', 'shadow-[0_0_15px_rgba(0,219,233,0.15)]');
+    btn.classList.add('bg-surface-container', 'border-outline-variant/30', 'text-on-surface-variant');
+  });
+  const activeBtn = document.getElementById(`lumina-cat-${catName.toLowerCase()}`);
+  if (activeBtn) {
+    activeBtn.classList.remove('bg-surface-container', 'border-outline-variant/30', 'text-on-surface-variant');
+    activeBtn.classList.add('bg-primary-container/20', 'border-primary-fixed', 'text-primary-fixed', 'shadow-[0_0_15px_rgba(0,219,233,0.15)]');
+  }
+}
+
+function openLuminaEntryModal() {
+  currentKeypadAmount = "0";
+  updateLuminaDisplay();
+  const noteInput = document.getElementById('lumina-note-input');
+  if (noteInput) noteInput.value = '';
+  const modal = document.getElementById('lumina-entry-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeLuminaEntryModal() {
+  const modal = document.getElementById('lumina-entry-modal');
+  if (modal) modal.classList.remove('active');
+  const overlay = document.getElementById('successOverlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function submitLuminaTransaction() {
+  const amount = parseFloat(currentKeypadAmount);
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Please enter a valid amount using the keypad.', 'warning');
+    return;
+  }
+  const noteInput = document.getElementById('lumina-note-input');
+  const methodSelect = document.getElementById('lumina-method-select');
+  const note = noteInput && noteInput.value.trim() ? noteInput.value.trim() : selectedLuminaCategory;
+  const method = methodSelect ? methodSelect.value : 'Bank Transfer';
+
+  const newTx = {
+    id: `tx-${Date.now()}`,
+    type: selectedLuminaType,
+    amount: amount,
+    date: getLocalDateString(new Date()),
+    category: selectedLuminaCategory,
+    method: method,
+    note: note
+  };
+
+  state.transactions.unshift(newTx);
+  saveToLocalStorage(true);
+  renderApp();
+
+  const overlay = document.getElementById('successOverlay');
+  if (overlay) {
+    overlay.classList.add('active');
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      closeLuminaEntryModal();
+    }, 1400);
+  } else {
+    closeLuminaEntryModal();
+  }
+  showToast('Transaction logged successfully!', 'success');
+}
+
+function openSendModal() {
+  const modal = document.getElementById('send-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeSendModal() {
+  const modal = document.getElementById('send-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function openReceiveModal() {
+  const modal = document.getElementById('receive-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeReceiveModal() {
+  const modal = document.getElementById('receive-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleSendTransferSubmit(e) {
+  if (e) e.preventDefault();
+  const recipient = document.getElementById('send-recipient').value;
+  const amount = parseFloat(document.getElementById('send-amount').value);
+  const note = document.getElementById('send-note').value;
+
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Please enter a valid amount to send.', 'warning');
+    return;
+  }
+
+  const newTx = {
+    id: `tx-${Date.now()}`,
+    type: 'expense',
+    amount: amount,
+    date: getLocalDateString(new Date()),
+    category: 'Other',
+    method: 'Bank Transfer',
+    note: `Transfer to ${recipient}: ${note}`
+  };
+
+  state.transactions.unshift(newTx);
+  saveToLocalStorage(true);
+  renderApp();
+  closeSendModal();
+  showToast(`Successfully sent ₹${amount.toFixed(2)} to ${recipient}!`, 'success');
+}
+
+window.appendKeypadNum = appendKeypadNum;
+window.deleteKeypadNum = deleteKeypadNum;
+window.selectLuminaCategory = selectLuminaCategory;
+window.openLuminaEntryModal = openLuminaEntryModal;
+window.closeLuminaEntryModal = closeLuminaEntryModal;
+window.submitLuminaTransaction = submitLuminaTransaction;
+window.openSendModal = openSendModal;
+window.closeSendModal = closeSendModal;
+window.openReceiveModal = openReceiveModal;
+window.closeReceiveModal = closeReceiveModal;
+window.handleSendTransferSubmit = handleSendTransferSubmit;

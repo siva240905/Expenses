@@ -371,9 +371,24 @@
           <span id="metric-count">0 items logged</span>
           <span id="savings-subtext-info" class="text-primary-fixed-dim">Click to Edit Target</span>
         </div>
-        <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-outline-variant to-transparent opacity-50"></div>
       </div>
 
+    </div>
+
+    <!-- Lumina Bento Quick Action Buttons -->
+    <div class="grid grid-cols-2 gap-stack-sm mb-stack-lg">
+      <button class="glass-panel rounded-xl p-stack-md flex flex-col items-start gap-stack-sm scan-line-hover text-on-surface hover:text-primary-fixed-dim transition-all text-left" onclick="openSendModal()">
+        <div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center text-primary-fixed-dim shadow-[0_0_12px_rgba(0,219,233,0.2)]">
+          <span class="material-symbols-outlined text-xl">send</span>
+        </div>
+        <span class="font-label-md text-label-md font-bold">Send</span>
+      </button>
+      <button class="glass-panel rounded-xl p-stack-md flex flex-col items-start gap-stack-sm scan-line-hover text-on-surface hover:text-secondary-fixed transition-all text-left" onclick="openReceiveModal()">
+        <div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center text-secondary-fixed shadow-[0_0_12px_rgba(208,91,255,0.2)]">
+          <span class="material-symbols-outlined text-xl">download</span>
+        </div>
+        <span class="font-label-md text-label-md font-bold">Receive</span>
+      </button>
     </div>
 
     <!-- Single-Line Rapid Entry / Fast Transaction Log -->
@@ -754,6 +769,184 @@
           <button type="submit" class="btn btn-primary"><i class="fa-solid fa-unlock"></i> Unlock Admin</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Prominent FAB - Add Transaction (Lumina Design System) -->
+  <div class="fixed bottom-20 md:bottom-8 right-6 z-40">
+    <button class="w-14 h-14 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shadow-[0_0_25px_rgba(0,219,233,0.5)] lumina-fab hover:scale-110 active:scale-95 transition-all duration-200" onclick="openLuminaEntryModal()" title="New Transaction Entry">
+      <span class="material-symbols-outlined text-3xl font-bold" style="font-variation-settings: 'FILL' 1;">add</span>
+    </button>
+  </div>
+
+  <!-- Bottom Navigation Bar (Mobile / Responsive) -->
+  <nav class="bg-background/90 backdrop-blur-xl text-primary-fixed font-label-sm text-label-sm fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 border-t border-primary-fixed/20 shadow-[0_-8px_20px_rgba(0,219,233,0.15)] md:hidden">
+    <button class="flex flex-col items-center justify-center bg-primary-container/20 text-primary-fixed-dim rounded-xl p-2 active:bg-primary/10 transition-all" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+      <span class="material-symbols-outlined mb-0.5 text-xl">home</span>
+      <span class="text-[11px]">Home</span>
+    </button>
+    <button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-primary-fixed-dim transition-all" onclick="document.getElementById('transactions-section')?.scrollIntoView({behavior:'smooth'})">
+      <span class="material-symbols-outlined mb-0.5 text-xl">account_balance_wallet</span>
+      <span class="text-[11px]">Wallets</span>
+    </button>
+    <button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-primary-fixed-dim transition-all" onclick="openSavingsModal()">
+      <span class="material-symbols-outlined mb-0.5 text-xl">swap_horiz</span>
+      <span class="text-[11px]">Trade</span>
+    </button>
+    <button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-primary-fixed-dim transition-all" onclick="openVaultModal()">
+      <span class="material-symbols-outlined mb-0.5 text-xl">history</span>
+      <span class="text-[11px]">Activity</span>
+    </button>
+  </nav>
+
+  <!-- Modal Dialog: Lumina Numeric Keypad Transaction Entry -->
+  <div id="lumina-entry-modal" class="modal-backdrop">
+    <div class="modal-box w-full max-w-md p-0 overflow-hidden relative border border-outline-variant/30 bg-[#0E0E13] rounded-2xl shadow-[0_0_50px_rgba(0,219,233,0.25)]">
+      
+      <!-- Atmospheric Neon Glow -->
+      <div class="absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,219,233,0.08),transparent_50%)] pointer-events-none"></div>
+
+      <!-- Header -->
+      <header class="flex justify-between items-center p-4 border-b border-outline-variant/20 relative z-10">
+        <button class="text-on-surface-variant hover:text-primary-fixed transition-colors" onclick="closeLuminaEntryModal()">
+          <span class="material-symbols-outlined text-2xl">close</span>
+        </button>
+        <h1 class="font-label-md text-label-md text-primary-fixed uppercase tracking-widest text-center">New Entry</h1>
+        <div class="w-6"></div>
+      </header>
+
+      <!-- Input Area & Amount Display -->
+      <section class="flex flex-col justify-center items-center py-6 px-4 relative z-10">
+        <div class="text-on-surface-variant font-label-sm text-label-sm mb-2 tracking-widest uppercase">AMOUNT</div>
+        <div class="flex items-center justify-center font-display-sm text-[44px] text-primary-fixed neon-text tracking-tighter">
+          <span class="text-outline-variant mr-1">₹</span>
+          <span id="luminaAmountDisplay">0.00</span>
+        </div>
+
+        <!-- Note Input & Payment Method -->
+        <div class="w-full mt-4 space-y-3 px-2">
+          <input type="text" id="lumina-note-input" class="w-full bg-surface-container/60 border border-outline-variant/30 rounded-lg px-3 py-2 text-sm text-on-surface focus:border-primary-fixed focus:outline-none" placeholder="Note / Description (Optional)">
+          <select id="lumina-method-select" class="w-full bg-surface-container/60 border border-outline-variant/30 rounded-lg px-3 py-2 text-sm text-on-surface focus:border-primary-fixed focus:outline-none">
+            <option value="Bank Transfer">Bank Transfer / UPI</option>
+            <option value="Debit Card">Debit Card</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="Cash">Cash</option>
+          </select>
+        </div>
+
+        <!-- Category Selector Pills -->
+        <div class="mt-5 w-full">
+          <div class="text-on-surface-variant font-label-sm text-label-sm mb-2 tracking-widest text-center uppercase">CATEGORY</div>
+          <div class="flex justify-center gap-2 flex-wrap">
+            <button id="lumina-cat-food" class="lumina-cat-btn flex flex-col items-center p-2 rounded-lg bg-primary-container/20 border border-primary-fixed text-primary-fixed transition-all w-20 shadow-[0_0_15px_rgba(0,219,233,0.15)]" onclick="selectLuminaCategory('Food', 'expense')">
+              <span class="material-symbols-outlined text-secondary-fixed mb-1 text-xl">restaurant</span>
+              <span class="font-label-sm text-[10px]">Food</span>
+            </button>
+            <button id="lumina-cat-transportation" class="lumina-cat-btn flex flex-col items-center p-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface-variant hover:border-primary-fixed/50 transition-all w-20" onclick="selectLuminaCategory('Transportation', 'expense')">
+              <span class="material-symbols-outlined mb-1 text-xl">local_gas_station</span>
+              <span class="font-label-sm text-[10px]">Fuel</span>
+            </button>
+            <button id="lumina-cat-shopping" class="lumina-cat-btn flex flex-col items-center p-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface-variant hover:border-primary-fixed/50 transition-all w-20" onclick="selectLuminaCategory('Shopping', 'expense')">
+              <span class="material-symbols-outlined text-secondary mb-1 text-xl">shopping_bag</span>
+              <span class="font-label-sm text-[10px]">Shop</span>
+            </button>
+            <button id="lumina-cat-housing" class="lumina-cat-btn flex flex-col items-center p-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface-variant hover:border-primary-fixed/50 transition-all w-20" onclick="selectLuminaCategory('Housing', 'expense')">
+              <span class="material-symbols-outlined text-primary-fixed mb-1 text-xl">home</span>
+              <span class="font-label-sm text-[10px]">Bills</span>
+            </button>
+            <button id="lumina-cat-income" class="lumina-cat-btn flex flex-col items-center p-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface-variant hover:border-primary-fixed/50 transition-all w-20" onclick="selectLuminaCategory('Income', 'income')">
+              <span class="material-symbols-outlined text-emerald-400 mb-1 text-xl">payments</span>
+              <span class="font-label-sm text-[10px]">Income</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Numeric Keypad Grid -->
+      <section class="w-full bg-surface-container/50 backdrop-blur-md border-t border-outline-variant/20 p-4 rounded-t-2xl relative z-10">
+        <div class="grid grid-cols-3 gap-2">
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('1')">1</button>
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('2')">2</button>
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('3')">3</button>
+          
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('4')">4</button>
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('5')">5</button>
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('6')">6</button>
+          
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('7')">7</button>
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('8')">8</button>
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('9')">9</button>
+          
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface-variant rounded-lg neon-border" onclick="appendKeypadNum('.')">.</button>
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center font-headline-lg text-xl text-on-surface rounded-lg neon-border" onclick="appendKeypadNum('0')">0</button>
+          <button class="keypad-btn h-14 bg-surface hover:bg-surface-bright flex items-center justify-center text-error rounded-lg neon-border" onclick="deleteKeypadNum()">
+            <span class="material-symbols-outlined text-xl">backspace</span>
+          </button>
+        </div>
+
+        <!-- Submit Action -->
+        <button class="w-full mt-4 bg-primary-fixed-dim text-on-primary-fixed font-label-md py-3.5 rounded-lg uppercase tracking-widest hover:bg-primary-fixed shadow-[0_0_20px_rgba(0,219,233,0.3)] transition-all active:scale-[0.98] font-bold" onclick="submitLuminaTransaction()">
+          Confirm Transaction
+        </button>
+      </section>
+
+      <!-- Animated Success Overlay -->
+      <div class="success-overlay absolute inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center" id="successOverlay">
+        <div class="success-icon w-20 h-20 rounded-full bg-primary-container/20 border-2 border-primary-fixed flex items-center justify-center shadow-[0_0_40px_rgba(0,219,233,0.4)] mb-4">
+          <span class="material-symbols-outlined text-primary-fixed text-4xl" style="font-variation-settings: 'FILL' 1;">check</span>
+        </div>
+        <h2 class="font-headline-lg text-2xl text-on-surface mb-1">Logged Successfully</h2>
+        <p class="font-body-md text-sm text-on-surface-variant">Transaction routed to ledger.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal Dialog: Send Money -->
+  <div id="send-modal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-paper-plane text-primary-fixed"></i> Send Transfer</h2>
+        <button class="btn-close" onclick="closeSendModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="handleSendTransferSubmit(event)">
+        <div class="form-group">
+          <label for="send-recipient"><i class="fa-solid fa-user"></i> Recipient Name / UPI ID</label>
+          <input type="text" id="send-recipient" class="form-control" placeholder="e.g. alex@upi or Alex" required>
+        </div>
+        <div class="form-group">
+          <label for="send-amount"><i class="fa-solid fa-indian-rupee-sign"></i> Amount (₹)</label>
+          <input type="number" step="any" min="1" id="send-amount" class="form-control" placeholder="e.g. 500" required>
+        </div>
+        <div class="form-group">
+          <label for="send-note">Note / Category</label>
+          <input type="text" id="send-note" class="form-control" placeholder="e.g. Rent payment" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeSendModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Send Now</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Dialog: Receive Money -->
+  <div id="receive-modal" class="modal-backdrop">
+    <div class="modal-box text-center" style="max-width: 420px;">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-qrcode text-secondary"></i> Receive Money / Gist QR</h2>
+        <button class="btn-close" onclick="closeReceiveModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="p-4 flex flex-col items-center">
+        <div class="w-48 h-48 bg-white p-3 rounded-xl shadow-[0_0_20px_rgba(0,219,233,0.3)] mb-4 flex items-center justify-center">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://siva240905.github.io/Expenses/" alt="Receive QR Code" class="w-full h-full object-contain"/>
+        </div>
+        <p class="font-label-md text-sm text-on-surface mb-2">Scan to transfer or view Cloud Ledger</p>
+        <span class="font-label-sm text-xs text-primary-fixed-dim bg-surface-variant px-3 py-1 rounded-full border border-primary-fixed/20">Gist ID: 4e9d3322f1da9f4a2ed6d79374937944</span>
+      </div>
+      <div class="modal-footer justify-center">
+        <button type="button" class="btn btn-secondary" onclick="closeReceiveModal()">Close</button>
+      </div>
     </div>
   </div>
 
