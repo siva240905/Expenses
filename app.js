@@ -99,10 +99,21 @@ function dismissPWABanner() {
 function loadFromLocalStorage() {
   try {
     const savedGistId = localStorage.getItem(GIST_ID_STORAGE);
-    if (savedGistId) state.gistId = savedGistId;
-
     const savedGistToken = localStorage.getItem(GIST_TOKEN_STORAGE);
+
     if (savedGistToken) state.gistToken = savedGistToken;
+
+    // Clean legacy default template Gist ID if token is missing
+    if (savedGistId && savedGistId !== '4e9d3322f1da9f4a2ed6d79374937944') {
+      state.gistId = savedGistId;
+    } else if (savedGistId === '4e9d3322f1da9f4a2ed6d79374937944') {
+      if (savedGistToken) {
+        state.gistId = savedGistId;
+      } else {
+        localStorage.removeItem(GIST_ID_STORAGE);
+        state.gistId = '';
+      }
+    }
 
     const savedAdminSession = sessionStorage.getItem(ADMIN_SESSION_STORAGE);
     if (savedAdminSession === 'true') state.isAdminLoggedIn = true;
@@ -183,7 +194,7 @@ function saveToLocalStorage(triggerCloudSync = true) {
     if (state.gistId) localStorage.setItem(GIST_ID_STORAGE, state.gistId);
     if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
     
-    if (triggerCloudSync && state.gistId) {
+    if (triggerCloudSync && state.gistId && state.gistToken) {
       syncToCloudDatabase();
     }
   } catch (err) {
@@ -193,18 +204,18 @@ function saveToLocalStorage(triggerCloudSync = true) {
 
 // --- Database & Cloud Synchronization Engine ---
 function initCloudDatabaseSync() {
-  if (state.gistId && state.gistId.trim() !== '') {
+  if (state.gistId && state.gistToken) {
     syncFromCloudDatabase();
   } else {
     updateSyncPillStatus('unconfigured');
   }
 
   window.addEventListener('focus', () => {
-    if (state.gistId && state.gistId.trim() !== '') syncFromCloudDatabase();
+    if (state.gistId && state.gistToken) syncFromCloudDatabase();
   });
   if (!cloudSyncInterval) {
     cloudSyncInterval = setInterval(() => {
-      if (state.gistId && state.gistId.trim() !== '') syncFromCloudDatabase();
+      if (state.gistId && state.gistToken) syncFromCloudDatabase();
     }, 30000);
   }
 }
@@ -457,8 +468,13 @@ function updateSyncPillStatus(status) {
     pill.style.color = '#f59e0b';
     pill.innerHTML = `<i class="fa-brands fa-github"></i> Setup Gist`;
   } else {
-    pill.style.color = '#ef4444';
-    pill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Sync Failed`;
+    if (state.gistId && state.gistToken) {
+      pill.style.color = '#ef4444';
+      pill.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Sync Failed`;
+    } else {
+      pill.style.color = '#f59e0b';
+      pill.innerHTML = `<i class="fa-brands fa-github"></i> Setup Gist`;
+    }
   }
 }
 
