@@ -102,18 +102,7 @@ function loadFromLocalStorage() {
     const savedGistToken = localStorage.getItem(GIST_TOKEN_STORAGE);
 
     if (savedGistToken) state.gistToken = savedGistToken;
-
-    // Clean legacy default template Gist ID if token is missing
-    if (savedGistId && savedGistId !== '4e9d3322f1da9f4a2ed6d79374937944') {
-      state.gistId = savedGistId;
-    } else if (savedGistId === '4e9d3322f1da9f4a2ed6d79374937944') {
-      if (savedGistToken) {
-        state.gistId = savedGistId;
-      } else {
-        localStorage.removeItem(GIST_ID_STORAGE);
-        state.gistId = '';
-      }
-    }
+    state.gistId = savedGistId || '4e9d3322f1da9f4a2ed6d79374937944';
 
     const savedAdminSession = sessionStorage.getItem(ADMIN_SESSION_STORAGE);
     if (savedAdminSession === 'true') state.isAdminLoggedIn = true;
@@ -197,18 +186,18 @@ function saveToLocalStorage(triggerCloudSync = true) {
 
 // --- Database & Cloud Synchronization Engine ---
 function initCloudDatabaseSync() {
-  if (state.gistId && state.gistToken) {
-    syncFromCloudDatabase();
+  if (state.gistId) {
+    restoreFromGist(false);
   } else {
     updateSyncPillStatus('unconfigured');
   }
 
   window.addEventListener('focus', () => {
-    if (state.gistId && state.gistToken) syncFromCloudDatabase();
+    if (state.gistId) restoreFromGist(false);
   });
   if (!cloudSyncInterval) {
     cloudSyncInterval = setInterval(() => {
-      if (state.gistId && state.gistToken) syncFromCloudDatabase();
+      if (state.gistId) restoreFromGist(false);
     }, 30000);
   }
 }
@@ -220,27 +209,25 @@ async function connectAndSyncGist(manual = true) {
   const gistIdVal = gistIdInput ? gistIdInput.value.trim() : state.gistId;
   const gistTokenVal = gistTokenInput ? gistTokenInput.value.trim() : state.gistToken;
 
-  state.gistId = gistIdVal || '';
+  state.gistId = gistIdVal || '4e9d3322f1da9f4a2ed6d79374937944';
   state.gistToken = gistTokenVal || '';
 
   if (state.gistId) localStorage.setItem(GIST_ID_STORAGE, state.gistId);
-  else localStorage.removeItem(GIST_ID_STORAGE);
-
   if (state.gistToken) localStorage.setItem(GIST_TOKEN_STORAGE, state.gistToken);
   else localStorage.removeItem(GIST_TOKEN_STORAGE);
 
-  if (!state.gistId && !state.gistToken) {
-    updateSyncPillStatus('unconfigured');
-    if (manual) showToast('Please enter a Gist ID or Access Token (PAT).', 'warning');
-    return false;
-  }
-
   updateSyncPillStatus('syncing');
 
-  // Push current dataset directly to GitHub Gist (overwriting remote data.json & expenses.json)
-  const syncSuccess = await syncToGitHubGist(false);
+  let restored = false;
+  if (state.gistId) {
+    restored = await restoreFromGist(false);
+  }
 
-  if (syncSuccess) {
+  if (state.gistToken) {
+    await syncToGitHubGist(false);
+  }
+
+  if (restored || state.gistToken) {
     if (manual) showToast('Connected & Synced with GitHub Gist successfully!', 'success');
     closeVaultModal();
     renderApp();
@@ -495,8 +482,19 @@ async function restoreFromGist(manual = false) {
         
         // Remote cloud transactions (Single source of truth from GitHub Gist)
         if (Array.isArray(remoteContent.transactions)) {
-          remoteContent.transactions.forEach(tx => {
-            if (tx && tx.id) txMap.set(tx.id, tx);
+          remoteContent.transactions.forEach(rawTx => {
+            if (rawTx && rawTx.id && !rawTx.isDeleted) {
+              const normalizedTx = {
+                id: rawTx.id,
+                type: rawTx.type || 'expense',
+                amount: parseFloat(rawTx.amount) || 0,
+                date: rawTx.date || (rawTx.createdAt ? rawTx.createdAt.split('T')[0] : getLocalDateString(new Date())),
+                category: rawTx.category || 'Other',
+                method: rawTx.method || rawTx.paymentMethod || 'Bank Transfer',
+                note: rawTx.note || rawTx.notes || rawTx.description || ''
+              };
+              txMap.set(normalizedTx.id, normalizedTx);
+            }
           });
         }
 
