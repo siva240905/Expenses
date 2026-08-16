@@ -108,16 +108,67 @@ function loadFromLocalStorage() {
     if (savedAdminSession === 'true') state.isAdminLoggedIn = true;
 
     const rawData = localStorage.getItem(STORAGE_KEY);
+    let localTxs = [];
     if (rawData) {
       const parsed = JSON.parse(rawData);
-      state.transactions = parsed.transactions || [];
-      state.monthlySavings = typeof parsed.monthlySavings !== 'undefined' ? parsed.monthlySavings : 1200;
-    } else {
-      seedDemoData(false);
+      localTxs = parsed.transactions || [];
+      state.monthlySavings = typeof parsed.monthlySavings !== 'undefined' ? parsed.monthlySavings : 1362;
     }
+
+    const defaultTxs = getDefaultTransactions();
+    const txMap = new Map();
+
+    // 1. Seed base database transactions
+    defaultTxs.forEach(tx => {
+      if (tx && tx.id) txMap.set(tx.id, tx);
+    });
+
+    // 2. Overlay any user local transactions
+    localTxs.forEach(tx => {
+      if (tx && tx.id) txMap.set(tx.id, tx);
+    });
+
+    state.transactions = Array.from(txMap.values());
+    state.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    fetchDbJsonFallback();
   } catch (err) {
     console.error('Failed to parse LocalStorage data:', err);
     seedDemoData(false);
+  }
+}
+
+async function fetchDbJsonFallback() {
+  try {
+    const res = await fetch('db.json');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.transactions) && data.transactions.length > 0) {
+        const txMap = new Map();
+        
+        // Existing state transactions
+        (state.transactions || []).forEach(tx => {
+          if (tx && tx.id) txMap.set(tx.id, tx);
+        });
+
+        // Merge db.json
+        data.transactions.forEach(tx => {
+          if (tx && tx.id && !txMap.has(tx.id)) {
+            txMap.set(tx.id, tx);
+          }
+        });
+
+        state.transactions = Array.from(txMap.values());
+        state.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        if (typeof data.monthlySavings !== 'undefined' && data.monthlySavings > 0) {
+          state.monthlySavings = data.monthlySavings;
+        }
+        saveToLocalStorage(false);
+        renderApp();
+      }
+    }
+  } catch (e) {
+    // Ignore static fetch errors
   }
 }
 
@@ -142,16 +193,18 @@ function saveToLocalStorage(triggerCloudSync = true) {
 
 // --- Database & Cloud Synchronization Engine ---
 function initCloudDatabaseSync() {
-  if (state.gistId) {
+  if (state.gistId && state.gistId.trim() !== '') {
     syncFromCloudDatabase();
+  } else {
+    updateSyncPillStatus('unconfigured');
   }
 
   window.addEventListener('focus', () => {
-    if (state.gistId) syncFromCloudDatabase();
+    if (state.gistId && state.gistId.trim() !== '') syncFromCloudDatabase();
   });
   if (!cloudSyncInterval) {
     cloudSyncInterval = setInterval(() => {
-      if (state.gistId) syncFromCloudDatabase();
+      if (state.gistId && state.gistId.trim() !== '') syncFromCloudDatabase();
     }, 30000);
   }
 }
@@ -247,13 +300,14 @@ async function syncToGitHubGist(manual = false) {
       console.warn('Direct GitHub fetch error, attempting server proxy...', e);
     }
 
-    // Proxy fallback if direct fetch failed
-    if (!res || !res.ok) {
+    // Proxy fallback only if direct fetch failed
+    if (!res || (!res.ok && res.status !== 401 && res.status !== 404)) {
       const proxyUrl = state.gistId ? `/api/gist-proxy?gistId=${state.gistId}` : `/api/gist-proxy`;
       const proxyHeaders = { 'Content-Type': 'application/json' };
       if (state.gistToken) proxyHeaders['x-github-token'] = state.gistToken;
       try {
-        res = await fetch(proxyUrl, { method, headers: proxyHeaders, body: bodyData });
+        const proxyRes = await fetch(proxyUrl, { method, headers: proxyHeaders, body: bodyData });
+        if (proxyRes.ok) res = proxyRes;
       } catch (proxyErr) {
         console.warn('Gist proxy fetch error:', proxyErr);
       }
@@ -272,7 +326,12 @@ async function syncToGitHubGist(manual = false) {
       return true;
     } else {
       updateSyncPillStatus('failed');
-      if (manual) showToast('Failed to sync with GitHub Gist. Local data is safe.', 'error');
+      const errStatus = res ? res.status : 0;
+      if (manual) {
+        if (errStatus === 404) showToast('Gist ID not found on GitHub. Check your Gist ID.', 'error');
+        else if (errStatus === 401) showToast('GitHub Access Token (PAT) invalid or missing permissions.', 'error');
+        else showToast('Failed to sync with GitHub Gist. Check Gist ID & Token.', 'error');
+      }
       return false;
     }
   } catch (err) {
@@ -307,11 +366,12 @@ async function restoreFromGist(manual = false) {
       console.warn('Direct fetch failed, trying proxy...', e);
     }
     
-    if (!res || !res.ok) {
+    if (!res || (!res.ok && res.status !== 404 && res.status !== 401)) {
       const proxyHeaders = {};
       if (state.gistToken) proxyHeaders['x-github-token'] = state.gistToken;
       try {
-        res = await fetch(`/api/gist-proxy?gistId=${state.gistId}`, { method: 'GET', headers: proxyHeaders });
+        const proxyRes = await fetch(`/api/gist-proxy?gistId=${state.gistId}`, { method: 'GET', headers: proxyHeaders });
+        if (proxyRes.ok) res = proxyRes;
       } catch (proxyErr) {
         console.warn('Proxy restore fetch error:', proxyErr);
       }
@@ -325,20 +385,22 @@ async function restoreFromGist(manual = false) {
       if (targetFile && targetFile.content) {
         const remoteContent = JSON.parse(targetFile.content);
 
-        // Deduplicate & merge transactions using unique transaction IDs
         const txMap = new Map();
         
-        // 1. Keep local transactions
-        (state.transactions || []).forEach(tx => {
-          if (tx && tx.id) txMap.set(tx.id, tx);
-        });
-
-        // 2. Merge remote transactions
+        // 1. Remote transactions
         if (Array.isArray(remoteContent.transactions)) {
           remoteContent.transactions.forEach(tx => {
             if (tx && tx.id) txMap.set(tx.id, tx);
           });
         }
+
+        // 2. Local transactions
+        (state.transactions || []).forEach(tx => {
+          if (tx && tx.id) {
+            const existing = txMap.get(tx.id);
+            txMap.set(tx.id, { ...existing, ...tx });
+          }
+        });
 
         state.transactions = Array.from(txMap.values());
         state.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -356,7 +418,11 @@ async function restoreFromGist(manual = false) {
     }
 
     updateSyncPillStatus('failed');
-    if (manual) showToast('Could not fetch valid Gist backup file.', 'error');
+    if (manual) {
+      if (res && res.status === 404) showToast('Gist ID not found on GitHub.', 'error');
+      else if (res && res.status === 401) showToast('GitHub Access Token invalid/unauthorized.', 'error');
+      else showToast('Could not fetch valid Gist backup file.', 'error');
+    }
     return false;
   } catch (err) {
     console.warn('Gist Restore error:', err);
@@ -406,35 +472,99 @@ function getLocalDateString(d) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function getDefaultTransactions() {
+  return [
+    { id: "tx-1786774575514", type: "expense", amount: 12, date: "2026-08-15", category: "Food", method: "Debit Card", note: "Food Entry" },
+    { id: "tx-1786767545397", type: "expense", amount: 150, date: "2026-08-15", category: "Transportation", method: "Bank Transfer", note: "Return to Home" },
+    { id: "tx-1786767450664", type: "expense", amount: 70, date: "2026-08-15", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1786767352458", type: "expense", amount: 100, date: "2026-08-15", category: "Transportation", method: "Bank Transfer", note: "petrol" },
+    { id: "tx-1", type: "expense", amount: 3450, date: "2026-08-15", category: "Food", method: "Debit Card", note: "Bought ETH (-1.5 ETH)" },
+    { id: "tx-2", type: "income", amount: 3210, date: "2026-08-14", category: "Income", method: "Bank Transfer", note: "Received BTC (+0.05 BTC)" },
+    { id: "tx-1786767517179", type: "expense", amount: 30, date: "2026-08-14", category: "Food", method: "Bank Transfer", note: "Breakfast" },
+    { id: "tx-3", type: "expense", amount: 85, date: "2026-08-13", category: "Fuel", method: "Credit Card", note: "Fuel Fill-Up" },
+    { id: "tx-1786767425115", type: "expense", amount: 20, date: "2026-08-13", category: "Food", method: "Bank Transfer", note: "Snack" },
+    { id: "tx-1786767403712", type: "expense", amount: 40, date: "2026-08-13", category: "Food", method: "Bank Transfer", note: "Breakfast" },
+    { id: "tx-4", type: "expense", amount: 140, date: "2026-08-12", category: "Shop", method: "Debit Card", note: "Store Supplies" },
+    { id: "tx-1786767268171", type: "income", amount: 500, date: "2026-08-12", category: "Income", method: "Bank Transfer", note: "Appatha" },
+    { id: "tx-1786767189035", type: "expense", amount: 112, date: "2026-08-12", category: "Food", method: "Bank Transfer", note: "Snack and Dinner" },
+    { id: "tx-1786767120870", type: "expense", amount: 40, date: "2026-08-11", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1786767097749", type: "expense", amount: 15, date: "2026-08-11", category: "Entertainment", method: "Bank Transfer", note: "sakthi" },
+    { id: "tx-1786766954562", type: "expense", amount: 50, date: "2026-08-10", category: "Health", method: "Bank Transfer", note: "Fever" },
+    { id: "tx-1786766932123", type: "expense", amount: 35, date: "2026-08-10", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1786766846846", type: "income", amount: 500, date: "2026-08-10", category: "Income", method: "Bank Transfer", note: "Amma " },
+    { id: "tx-1786340246731", type: "expense", amount: 356, date: "2026-08-08", category: "Transportation", method: "Bank Transfer", note: "karur clg" },
+    { id: "tx-1786340292132", type: "expense", amount: 78, date: "2026-08-07", category: "Food", method: "Bank Transfer", note: "2 days food " },
+    { id: "tx-1786021908790", type: "expense", amount: 1900, date: "2026-08-06", category: "Housing", method: "Bank Transfer", note: "RENT" },
+    { id: "tx-1786023368767", type: "expense", amount: 19, date: "2026-08-05", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1785903410732", type: "expense", amount: 349, date: "2026-08-05", category: "Housing", method: "Bank Transfer", note: "Recharge" },
+    { id: "tx-1785903351116", type: "expense", amount: 68, date: "2026-08-04", category: "Health", method: "Bank Transfer", note: "soap" },
+    { id: "tx-1785772484737", type: "expense", amount: 18, date: "2026-08-03", category: "Food", method: "Bank Transfer", note: "Dinner " },
+    { id: "tx-1785763543009", type: "income", amount: 500, date: "2026-08-02", category: "Income", method: "Bank Transfer", note: "Appa" },
+    { id: "tx-1785763510741", type: "expense", amount: 10, date: "2026-08-02", category: "Health", method: "Bank Transfer", note: "shop" },
+    { id: "tx-1785763356553", type: "expense", amount: 40, date: "2026-08-01", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1785763322919", type: "expense", amount: 30, date: "2026-08-01", category: "Food", method: "Bank Transfer", note: "Snack" },
+    { id: "tx-1785589225714", type: "expense", amount: 9, date: "2026-08-01", category: "Health", method: "Bank Transfer", note: "Washing " },
+    { id: "tx-w5", type: "expense", amount: 95.0, date: "2026-07-31", category: "Entertainment", method: "Debit Card", note: "Friday Dinner & IMAX Movie Tickets" },
+    { id: "tx-1785551014548", type: "expense", amount: 60, date: "2026-07-31", category: "Food", method: "Bank Transfer", note: "Varun and Waffles " },
+    { id: "tx-1785471755648", type: "expense", amount: 8, date: "2026-07-31", category: "Food", method: "Bank Transfer", note: "lunch" },
+    { id: "tx-w4", type: "expense", amount: 140.0, date: "2026-07-30", category: "Shopping", method: "Credit Card", note: "Thursday Office Accessories & Tech" },
+    { id: "tx-1785471737527", type: "expense", amount: 35, date: "2026-07-30", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1785376689442", type: "expense", amount: 34, date: "2026-07-30", category: "Food", method: "Bank Transfer", note: "Dinner and lunch" },
+    { id: "tx-w3", type: "expense", amount: 60.0, date: "2026-07-29", category: "Transportation", method: "Credit Card", note: "Wednesday Fuel Fill-Up" },
+    { id: "tx-1785376662282", type: "expense", amount: 8, date: "2026-07-29", category: "Shopping", method: "Bank Transfer", note: "Room" },
+    { id: "tx-1785376595657", type: "expense", amount: 120, date: "2026-07-29", category: "Other", method: "Bank Transfer", note: "Mani" },
+    { id: "tx-w2", type: "expense", amount: 160.0, date: "2026-07-28", category: "Food", method: "Debit Card", note: "Tuesday Supermarket Restock" },
+    { id: "tx-1785244568429", type: "expense", amount: 20, date: "2026-07-28", category: "Food", method: "Bank Transfer", note: "Breakfast" },
+    { id: "tx-w1", type: "expense", amount: 85.0, date: "2026-07-27", category: "Food", method: "Credit Card", note: "Monday Grocery & Fresh Produce" },
+    { id: "tx-1785244539930", type: "expense", amount: 50, date: "2026-07-27", category: "Transportation", method: "Bank Transfer", note: "travel to home" },
+    { id: "tx-1785244498281", type: "expense", amount: 65, date: "2026-07-27", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1785244472245", type: "expense", amount: 60, date: "2026-07-27", category: "Food", method: "Bank Transfer", note: "Mani visit" },
+    { id: "tx-1785244387568", type: "income", amount: 1000, date: "2026-07-26", category: "Income", method: "Bank Transfer", note: "Chithi returns" },
+    { id: "tx-1785244343125", type: "expense", amount: 40, date: "2026-07-26", category: "Shopping", method: "Bank Transfer", note: "Masala" },
+    { id: "tx-1785244316703", type: "expense", amount: 460, date: "2026-07-26", category: "Shopping", method: "Bank Transfer", note: "Chicken" },
+    { id: "tx-1785244284078", type: "expense", amount: 45, date: "2026-07-26", category: "Food", method: "Bank Transfer", note: "Maran ice" },
+    { id: "tx-1785244158734", type: "expense", amount: 125, date: "2026-07-26", category: "Education", method: "Bank Transfer", note: "notes" },
+    { id: "tx-1785243288619", type: "expense", amount: 215, date: "2026-07-26", category: "Education", method: "Bank Transfer", note: "Hashni" },
+    { id: "tx-109", type: "expense", amount: 110.0, date: "2026-07-25", category: "Health", method: "Credit Card", note: "Monthly Gym Membership & Supplements" },
+    { id: "tx-1785244100958", type: "expense", amount: 10, date: "2026-07-24", category: "Food", method: "Bank Transfer", note: "Snack" },
+    { id: "tx-1785244073362", type: "expense", amount: 200, date: "2026-07-24", category: "Income", method: "Bank Transfer", note: "Murugan appa" },
+    { id: "tx-1785243960726", type: "expense", amount: 14, date: "2026-07-24", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1785243937213", type: "expense", amount: 50, date: "2026-07-24", category: "Transportation", method: "Bank Transfer", note: "return home" },
+    { id: "tx-1785243895692", type: "expense", amount: 68, date: "2026-07-23", category: "Food", method: "Bank Transfer", note: "Dinner" },
+    { id: "tx-1785242596355", type: "expense", amount: 200, date: "2026-07-23", category: "Transportation", method: "Debit Card", note: "Fuel / Transport" },
+    { id: "tx-1785241951674", type: "expense", amount: 18, date: "2026-07-23", category: "Food", method: "Debit Card", note: "breakfast" },
+    { id: "tx-1785241931974", type: "expense", amount: 55, date: "2026-07-22", category: "Food", method: "Debit Card", note: "Dinner" },
+    { id: "tx-1785241898773", type: "expense", amount: 352, date: "2026-07-22", category: "Shopping", method: "Debit Card", note: "Shopping Items rice and oil" },
+    { id: "tx-1785241877346", type: "expense", amount: 65, date: "2026-07-22", category: "Food", method: "Debit Card", note: "breakfast" },
+    { id: "tx-108", type: "expense", amount: 45.0, date: "2026-07-22", category: "Entertainment", method: "Debit Card", note: "IMAX Movie Tickets & Snacks" },
+    { id: "tx-1785241858825", type: "expense", amount: 97, date: "2026-07-21", category: "Food", method: "Debit Card", note: "Dinner" },
+    { id: "tx-1785241845333", type: "expense", amount: 75, date: "2026-07-21", category: "Shopping", method: "Debit Card", note: "brush" },
+    { id: "tx-1785241810932", type: "expense", amount: 35, date: "2026-07-20", category: "Food", method: "Debit Card", note: "Dinner" },
+    { id: "tx-1785241785131", type: "expense", amount: 5000, date: "2026-07-20", category: "Housing", method: "Debit Card", note: "rent" },
+    { id: "tx-1785241369711", type: "income", amount: 9000, date: "2026-07-19", category: "Housing", method: "Bank Transfer", note: "House" },
+    { id: "tx-107", type: "expense", amount: 220.0, date: "2026-07-18", category: "Shopping", method: "Credit Card", note: "Summer Apparel & Accessories" },
+    { id: "tx-106", type: "expense", amount: 95.0, date: "2026-07-15", category: "Food", method: "Credit Card", note: "Dinner & Drinks with Team" },
+    { id: "tx-105", type: "expense", amount: 140.0, date: "2026-07-12", category: "Housing", method: "Debit Card", note: "Electric & High-Speed Fiber Internet Bill" },
+    { id: "tx-104", type: "expense", amount: 65.0, date: "2026-07-08", category: "Transportation", method: "Credit Card", note: "Vehicle Fuel Fill-Up" },
+    { id: "tx-103", type: "expense", amount: 185.5, date: "2026-07-05", category: "Food", method: "Credit Card", note: "Weekly Organic Groceries at Whole Foods" },
+    { id: "tx-102", type: "expense", amount: 1250, date: "2026-07-02", category: "Housing", method: "Bank Transfer", note: "Apartment Rent & Building Maintenance" },
+    { id: "tx-101", type: "income", amount: 4500, date: "2026-07-01", category: "Income", method: "Bank Transfer", note: "Monthly Tech Salary Paycheck" },
+    { id: "tx-206", type: "expense", amount: 130.0, date: "2026-06-25", category: "Education", method: "Credit Card", note: "Online Cloud Certification Course" },
+    { id: "tx-205", type: "expense", amount: 75.0, date: "2026-06-20", category: "Transportation", method: "Credit Card", note: "Fuel & Highway Toll Pass" },
+    { id: "tx-204", type: "expense", amount: 180.0, date: "2026-06-14", category: "Shopping", method: "Credit Card", note: "Ergonomic Desk Chair Upgrade" },
+    { id: "tx-203", type: "expense", amount: 210.0, date: "2026-06-07", category: "Food", method: "Credit Card", note: "Groceries & Gourmet Supplies" },
+    { id: "tx-202", type: "expense", amount: 1250, date: "2026-06-02", category: "Housing", method: "Bank Transfer", note: "June Apartment Rent" },
+    { id: "tx-201", type: "income", amount: 4500, date: "2026-06-01", category: "Income", method: "Bank Transfer", note: "Monthly Salary Paycheck" }
+  ];
+}
+
 // --- Seed Sample Data ---
 function seedDemoData(notify = true) {
-  state.monthlySavings = 1200;
-  state.transactions = [
-    { id: 'tx-w1', type: 'expense', amount: 85.00, date: '2026-07-27', category: 'Food', method: 'Credit Card', note: 'Monday Grocery & Fresh Produce' },
-    { id: 'tx-w2', type: 'expense', amount: 160.00, date: '2026-07-28', category: 'Food', method: 'Debit Card', note: 'Tuesday Supermarket Restock' },
-    { id: 'tx-w3', type: 'expense', amount: 60.00, date: '2026-07-29', category: 'Transportation', method: 'Credit Card', note: 'Wednesday Fuel Fill-Up' },
-    { id: 'tx-w4', type: 'expense', amount: 140.00, date: '2026-07-30', category: 'Shopping', method: 'Credit Card', note: 'Thursday Office Accessories' },
-    { id: 'tx-w5', type: 'expense', amount: 95.00, date: '2026-07-31', category: 'Entertainment', method: 'Debit Card', note: 'Friday Dinner & IMAX Movie' },
-    { id: 'tx-101', type: 'income', amount: 4500, date: '2026-07-01', category: 'Income', method: 'Bank Transfer', note: 'Monthly Tech Salary Paycheck' },
-    { id: 'tx-102', type: 'expense', amount: 1250, date: '2026-07-02', category: 'Housing', method: 'Bank Transfer', note: 'Apartment Rent & Building Maintenance' },
-    { id: 'tx-103', type: 'expense', amount: 185.50, date: '2026-07-05', category: 'Food', method: 'Credit Card', note: 'Weekly Organic Groceries at Whole Foods' },
-    { id: 'tx-104', type: 'expense', amount: 65.00, date: '2026-07-08', category: 'Transportation', method: 'Credit Card', note: 'Vehicle Fuel Fill-Up' },
-    { id: 'tx-105', type: 'expense', amount: 140.00, date: '2026-07-12', category: 'Housing', method: 'Debit Card', note: 'Electric & High-Speed Fiber Internet Bill' },
-    { id: 'tx-106', type: 'expense', amount: 95.00, date: '2026-07-15', category: 'Food', method: 'Credit Card', note: 'Dinner & Drinks with Team' },
-    { id: 'tx-107', type: 'expense', amount: 220.00, date: '2026-07-18', category: 'Shopping', method: 'Credit Card', note: 'Summer Apparel & Accessories' },
-    { id: 'tx-108', type: 'expense', amount: 45.00, date: '2026-07-22', category: 'Entertainment', method: 'Debit Card', note: 'IMAX Movie Tickets & Snacks' },
-    { id: 'tx-109', type: 'expense', amount: 110.00, date: '2026-07-25', category: 'Health', method: 'Credit Card', note: 'Monthly Gym Membership & Supplements' },
-    { id: 'tx-201', type: 'income', amount: 4500, date: '2026-06-01', category: 'Income', method: 'Bank Transfer', note: 'Monthly Salary Paycheck' },
-    { id: 'tx-202', type: 'expense', amount: 1250, date: '2026-06-02', category: 'Housing', method: 'Bank Transfer', note: 'June Apartment Rent' },
-    { id: 'tx-203', type: 'expense', amount: 210.00, date: '2026-06-07', category: 'Food', method: 'Credit Card', note: 'Groceries & Gourmet Supplies' },
-    { id: 'tx-204', type: 'expense', amount: 180.00, date: '2026-06-14', category: 'Shopping', method: 'Credit Card', note: 'Ergonomic Desk Chair Upgrade' },
-    { id: 'tx-205', type: 'expense', amount: 75.00, date: '2026-06-20', category: 'Transportation', method: 'Credit Card', note: 'Fuel & Highway Toll Pass' },
-    { id: 'tx-206', type: 'expense', amount: 130.00, date: '2026-06-25', category: 'Education', method: 'Credit Card', note: 'Online Cloud Certification Course' }
-  ];
-
-  saveToLocalStorage();
+  state.monthlySavings = 1362;
+  state.transactions = getDefaultTransactions();
+  saveToLocalStorage(false);
   renderApp();
-  if (notify) showToast('Database reset and seeded with sample history!', 'success');
+  if (notify) showToast('Database reset and seeded with complete history!', 'success');
 }
 
 // --- Render Core App ---
