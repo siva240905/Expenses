@@ -47,6 +47,126 @@
   --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Lumina Design System Core Styles */
+.glass-panel {
+    background: rgba(19, 19, 24, 0.45);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(132, 148, 149, 0.2);
+    transition: all 0.3s ease;
+}
+
+.glass-panel:hover, .glass-panel:focus-within {
+    border-color: #00dbe9;
+    box-shadow: 0 0 15px rgba(0, 219, 233, 0.2) inset;
+}
+
+.neon-text {
+    text-shadow: 0 0 8px rgba(0, 219, 233, 0.6);
+}
+
+.neon-text-glow {
+    text-shadow: 0 0 10px rgba(0, 219, 233, 0.5);
+}
+
+.neon-border {
+    box-shadow: inset 0 0 0 1px rgba(0, 219, 233, 0.2);
+    transition: all 0.2s ease-out;
+}
+
+.neon-border:active {
+    box-shadow: inset 0 0 0 2px rgba(0, 219, 233, 0.8), 0 0 10px rgba(0, 219, 233, 0.4);
+}
+
+.keypad-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.keypad-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(0, 219, 233, 0.8);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.keypad-btn:active::after {
+    animation: ripple 0.4s ease-out;
+}
+
+@keyframes ripple {
+    0% { transform: scale(0, 0); opacity: 0.5; }
+    20% { transform: scale(25, 25); opacity: 0.3; }
+    100% { opacity: 0; transform: scale(40, 40); }
+}
+
+.success-overlay {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-out;
+}
+
+.success-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.success-icon {
+    transform: scale(0.5);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.success-overlay.active .success-icon {
+    transform: scale(1);
+}
+
+.scan-line-hover {
+    position: relative;
+    overflow: hidden;
+}
+
+.scan-line-hover::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(0, 219, 233, 0.1) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    transform: rotate(45deg) translateY(-100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+
+.scan-line-hover:hover::after {
+    transform: rotate(45deg) translateY(100%);
+}
+
+.particles-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: -1;
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(0, 219, 233, 0.04) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(208, 91, 255, 0.04) 0%, transparent 50%);
+}
+
 /* Base Resets */
 * {
   margin: 0;

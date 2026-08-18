@@ -15,7 +15,7 @@
   <!-- Google Fonts & Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -97,14 +97,14 @@
             "unit": "4px"
           },
           "fontFamily": {
-            "body-md": ["Inter", "sans-serif"],
-            "body-lg": ["Inter", "sans-serif"],
-            "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
-            "display-sm": ["Plus Jakarta Sans", "sans-serif"],
-            "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
-            "display-lg": ["Plus Jakarta Sans", "sans-serif"],
-            "label-md": ["Fira Code", "monospace"],
-            "label-sm": ["Fira Code", "monospace"]
+            "body-md": ["Geist", "sans-serif"],
+            "body-lg": ["Geist", "sans-serif"],
+            "headline-lg": ["Space Grotesk", "sans-serif"],
+            "display-sm": ["Space Grotesk", "sans-serif"],
+            "headline-lg-mobile": ["Space Grotesk", "sans-serif"],
+            "display-lg": ["Space Grotesk", "sans-serif"],
+            "label-md": ["JetBrains Mono", "monospace"],
+            "label-sm": ["JetBrains Mono", "monospace"]
           },
           "fontSize": {
             "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
@@ -174,7 +174,8 @@
 </head>
 <body class="bg-[#0A0A0F] text-on-surface font-body-md min-h-screen flex flex-col md:flex-row overflow-x-hidden selection:bg-primary-fixed-dim selection:text-on-primary-fixed">
 
-  <!-- Ambient Background Effect -->
+  <!-- Ambient Background & Particles Effect -->
+  <div class="particles-bg"></div>
   <div class="fixed inset-0 pointer-events-none z-[-1]" style="background: radial-gradient(circle at 50% 0%, rgba(0,219,233,0.05) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(208,91,255,0.03) 0%, transparent 50%);"></div>
 
   <!-- SideNavBar (Desktop) -->
@@ -265,6 +266,17 @@
   <!-- Main Content Canvas -->
   <main class="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop pb-24 md:pb-margin-desktop relative">
     
+    <!-- Lumina Header Greeting Section -->
+    <header class="flex justify-between items-center w-full mb-stack-md">
+      <div>
+        <h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface font-bold">Good Morning,</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant">Alex</p>
+      </div>
+      <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-primary-fixed-dim hover:bg-primary-fixed/10 transition-colors shadow-[0_0_15px_rgba(0,219,233,0.15)]" onclick="openVaultModal()" title="Notifications & Settings">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+      </button>
+    </header>
+
     <!-- Header Actions (Desktop Overview Header) -->
     <div class="hidden md:flex justify-between items-end mb-stack-lg">
       <div>
