@@ -38,7 +38,8 @@ class SecureStorageManager(context: Context) {
     }
 
     fun getGistId(): String {
-        return sharedPreferences.getString("gist_id", "") ?: ""
+        val id = sharedPreferences.getString("gist_id", "") ?: ""
+        return if (id.isBlank()) "4e9d3322f1da9f4a2ed6d79374937944" else id
     }
 
     fun saveAutoSync(enabled: Boolean) {

@@ -13,6 +13,11 @@ interface GistApiService {
         @Path("id") gistId: String
     ): Response<JsonObject>
 
+    @GET("gists/{id}")
+    suspend fun getPublicGist(
+        @Path("id") gistId: String
+    ): Response<JsonObject>
+
     @POST("gists")
     suspend fun createGist(
         @Header("Authorization") token: String,

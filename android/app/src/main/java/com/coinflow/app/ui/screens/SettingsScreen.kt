@@ -31,7 +31,8 @@ fun SettingsScreen(viewModel: MainViewModel) {
         Text("Settings & Cloud Sync", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF8FAFC))
 
         if (syncMessage != null) {
-            Text(syncMessage!!, color = Color(0xFF10B981), fontSize = 12.sp)
+            val isError = syncMessage!!.startsWith("Sync Error:")
+            Text(syncMessage!!, color = if (isError) Color(0xFFEF4444) else Color(0xFF10B981), fontSize = 12.sp)
         }
 
         Card(
@@ -79,7 +80,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
                 OutlinedButton(
                     onClick = { viewModel.syncNow() },
-                    enabled = !isSyncing && token.isNotBlank(),
+                    enabled = !isSyncing,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(if (isSyncing) "Syncing..." else "Sync Now")

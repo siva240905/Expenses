@@ -458,6 +458,14 @@ async function restoreFromGist(manual = false) {
     } catch (e) {
       console.warn('Direct fetch failed, trying proxy...', e);
     }
+
+    if (!res || (!res.ok && res.status === 401)) {
+      try {
+        res = await fetch(`https://api.github.com/gists/${state.gistId}`, { method: 'GET', headers: { 'Accept': 'application/vnd.github.v3+json' } });
+      } catch (anonErr) {
+        console.warn('Public Gist restore fetch error:', anonErr);
+      }
+    }
     
     if (!res || (!res.ok && res.status !== 404 && res.status !== 401)) {
       const proxyHeaders = {};

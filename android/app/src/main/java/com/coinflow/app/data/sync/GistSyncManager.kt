@@ -32,12 +32,10 @@ class GistSyncManager(private val context: Context) {
     }
 
     suspend fun performSync(): Pair<Boolean, String> = withContext(Dispatchers.IO) {
-        val token = secureStorage.getGithubToken()
-        if (token.isBlank()) {
-            return@withContext Pair(false, "No GitHub token configured")
-        }
+        val token = secureStorage.getGithubToken().trim()
+        val configuredGistId = secureStorage.getGistId().trim()
+        val gistId = if (configuredGistId.isBlank()) "4e9d3322f1da9f4a2ed6d79374937944" else configuredGistId
 
-        val authHeader = if (token.startsWith("token ") || token.startsWith("Bearer ")) token else "token $token"
         val db = AppDatabase.getDatabase(context, kotlinx.coroutines.CoroutineScope(Dispatchers.IO))
         val dao = db.transactionDao()
 
@@ -48,15 +46,37 @@ class GistSyncManager(private val context: Context) {
                 Category(it.id, it.name, it.type, it.icon, it.color, it.isDefault)
             }
 
-            var gistId = secureStorage.getGistId()
             var remotePayload: GistPayload? = null
+            var fetchedFromPublic = false
 
             if (gistId.isNotBlank()) {
-                val response = gistApiService.getGist(authHeader, gistId)
-                if (response.isSuccessful && response.body() != null) {
+                val authHeader = if (token.isNotBlank()) {
+                    if (token.startsWith("token ") || token.startsWith("Bearer ")) token else "token $token"
+                } else ""
+
+                var response = if (authHeader.isNotBlank()) {
+                    try { gistApiService.getGist(authHeader, gistId) } catch (e: Exception) { null }
+                } else null
+
+                // Fallback to unauthenticated GET for public Gists if token is blank or returned 401 Unauthorized
+                if (response == null || !response.isSuccessful || response.code() == 401) {
+                    try {
+                        val publicResp = gistApiService.getPublicGist(gistId)
+                        if (publicResp.isSuccessful && publicResp.body() != null) {
+                            response = publicResp
+                            fetchedFromPublic = true
+                        }
+                    } catch (e: Exception) {
+                        // ignore public fallback error
+                    }
+                }
+
+                if (response != null && response.isSuccessful && response.body() != null) {
                     val gistObj = response.body()!!
                     val filesObj = gistObj.getAsJsonObject("files")
                     val fileObj = filesObj?.getAsJsonObject("coin_flow_data.json")
+                        ?: filesObj?.getAsJsonObject("data.json")
+                        ?: filesObj?.getAsJsonObject("expenses.json")
                         ?: filesObj?.entrySet()?.firstOrNull()?.value?.asJsonObject
 
                     if (fileObj != null && fileObj.has("content")) {
@@ -70,7 +90,54 @@ class GistSyncManager(private val context: Context) {
                 timeZone = TimeZone.getTimeZone("UTC")
             }.format(Date())
 
-            if (remotePayload == null || gistId.isBlank()) {
+            // Bidirectional Merge with remote payload if available
+            val mergedMap = mutableMapOf<String, Transaction>()
+            localTxns.forEach { mergedMap[it.id] = it }
+
+            var remoteTxCount = 0
+            if (remotePayload != null) {
+                val remoteTxns = remotePayload.transactions
+                remoteTxns.forEach { remoteTx ->
+                    if (remoteTx.id.isNotBlank()) {
+                        val localTx = mergedMap[remoteTx.id]
+                        if (localTx == null) {
+                            mergedMap[remoteTx.id] = remoteTx
+                        } else {
+                            val localTime = parseIsoTime(localTx.updatedAt)
+                            val remoteTime = parseIsoTime(remoteTx.updatedAt)
+                            if (remoteTime > localTime) {
+                                mergedMap[remoteTx.id] = remoteTx
+                            }
+                        }
+                    }
+                }
+                remoteTxCount = remoteTxns.count { !it.isDeleted }
+            }
+
+            val mergedList = mergedMap.values.toList()
+
+            // Save merged list directly into local Room database so UI instantly populates
+            if (mergedList.isNotEmpty()) {
+                val entitiesToSave = mergedList.map { TransactionEntity.fromDomain(it).copy(pendingSync = false) }
+                dao.insertTransactions(entitiesToSave)
+                secureStorage.saveLastSyncedAt(nowIso)
+                if (secureStorage.getGistId().isBlank()) {
+                    secureStorage.saveGistId(gistId)
+                }
+            }
+
+            // If token is missing, return success if read succeeded, or prompt for token
+            if (token.isBlank()) {
+                return@withContext if (remotePayload != null) {
+                    Pair(true, "Restored $remoteTxCount transactions from Gist (Read-only mode).")
+                } else {
+                    Pair(false, "No GitHub token configured.")
+                }
+            }
+
+            val authHeader = if (token.startsWith("token ") || token.startsWith("Bearer ")) token else "token $token"
+
+            if (remotePayload == null && configuredGistId.isBlank()) {
                 // Create new Gist
                 val newPayload = GistPayload(
                     version = 1,
@@ -104,28 +171,7 @@ class GistSyncManager(private val context: Context) {
                 }
             }
 
-            // Bidirectional Merge
-            val mergedMap = mutableMapOf<String, Transaction>()
-            localTxns.forEach { mergedMap[it.id] = it }
-
-            val remoteTxns = remotePayload.transactions
-            remoteTxns.forEach { remoteTx ->
-                val localTx = mergedMap[remoteTx.id]
-                if (localTx == null) {
-                    mergedMap[remoteTx.id] = remoteTx
-                } else {
-                    // Compare updatedAt
-                    val localTime = parseIsoTime(localTx.updatedAt)
-                    val remoteTime = parseIsoTime(remoteTx.updatedAt)
-                    if (remoteTime > localTime) {
-                        mergedMap[remoteTx.id] = remoteTx
-                    }
-                }
-            }
-
-            val mergedList = mergedMap.values.toList()
-
-            // Construct merged payload
+            // Construct merged payload for updating Gist
             val mergedPayload = GistPayload(
                 version = 1,
                 user = GistUserData("INR"),
@@ -147,12 +193,16 @@ class GistSyncManager(private val context: Context) {
 
             val updateResponse = gistApiService.updateGist(authHeader, gistId, updateObj)
             if (updateResponse.isSuccessful) {
-                // Update local Room database
-                val entitiesToSave = mergedList.map { TransactionEntity.fromDomain(it).copy(pendingSync = false) }
-                dao.insertTransactions(entitiesToSave)
                 secureStorage.saveLastSyncedAt(nowIso)
                 return@withContext Pair(true, "Synced ${mergedList.size} transactions cleanly with Gist.")
             } else {
+                if (updateResponse.code() == 401) {
+                    if (remotePayload != null) {
+                        return@withContext Pair(true, "Restored $remoteTxCount transactions from Gist! (Token invalid for updates)")
+                    } else {
+                        return@withContext Pair(false, "GitHub Token invalid/unauthorized (401).")
+                    }
+                }
                 return@withContext Pair(false, "Gist update failed: ${updateResponse.code()}")
             }
         } catch (e: Exception) {

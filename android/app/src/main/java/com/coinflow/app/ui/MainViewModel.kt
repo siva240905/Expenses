@@ -27,6 +27,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = ExpenseRepository(application)
 
+    init {
+        syncNow()
+    }
+
     val transactions: StateFlow<List<Transaction>> = repository.allTransactions.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
